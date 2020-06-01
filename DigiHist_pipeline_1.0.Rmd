@@ -67,9 +67,10 @@ setwd(proj.dir)
 
 #saving the client ID and client secret for subsequent use by the tuber package
 #at prompt choose "1: Yes"
-
-app_id <- ""
-app_secret <- ""
+source("API_Keys.R")
+call_service(API_ID, API_Secret)
+app_id <- API_ID
+app_secret <- API_Secret
 yt_oauth(app_id, app_secret)
 
 
