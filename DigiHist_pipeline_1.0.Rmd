@@ -1,7 +1,7 @@
 ---
 title: "Programming Historian on YouTube Comments in Wordfish"
 author: "Jeff Antsen, Nicole Lemire-Garlic, Alex Wermer-Colan"
-date: "6/2/2020"
+date: "6/2/2020000"
 output:
   html_document: default
   pdf_document: default
