@@ -54,8 +54,8 @@ library(lubridate)
 # CLEANUP your workspace
 ##                     __       rm(list=ls())
 
-subject_s <- "COVID"  #@ what the project is about (this will appear in visualization titles and file names)
-SearchTerms <- c("reopening america", "reopen america", "#reopenamerica", "freeamericanow")
+subject_s <- "COVID_and_Opening_America"  #@ what the project is about (this will appear in visualization titles and file names)
+SearchTerms <- c("reopening america", "reopen america", "#reopenamerica", "freeamericanow", "#freeamericanow")
 #@ these are the keyword terms which will be used to identify videos
 
 
@@ -77,7 +77,7 @@ SearchTerms <- c("reopening america", "reopen america", "#reopenamerica", "freea
 input.dir <- "csv_Data/" #@ this folder contains .csv files of comment data (old skool)
 proj.dir <- "~/Box Sync/Consulting/DSC_Youtube/"
 
-setwd(proj.dir)
+#setwd(proj.dir)
 getwd()
 ```
 
@@ -92,69 +92,93 @@ Do we want to keep this in?  Right now, it will be 'ignored' by the kint markdow
 
 #length(files.v)
 #files.v
-
-###### test read in the article subset
-#test.csv.df <- read.csv(paste(data.dir, input.dir, files.v[1], sep="/"), quote = "", stringsAsFactors=FALSE)
-#View(head(test.tab.df))
-#nrow(test.csv.df)
 ```
 
 
 # Code BEGINS here Proper
-### Create(scrape) comment data object
-```{r scrape_comments, echo=T, results='hide'}
-
-#saving the client ID and client secret for subsequent use by the tuber package
-#at prompt choose "1: Yes"
+### Authorize your API account
+```{r authorize, echo=T, results='hide'}
+#Saving the client ID and client secret for subsequent use by the tuber package
+#at prompt choose "1: Yes IN THE CONSOLE!"
+#this creates your personal .httr-oauth file - you only need to do this once, as long as you don't delete that file!
 source("Config.R")
 
 app_id <- API_ID
 app_secret <- API_Secret
 yt_oauth(app_id, app_secret)
+```
 
+### Get list of matching videos
+```{r get_video_list}
+SearchResults <- map(SearchTerms, yt_search)
+SearchResultsDF <- do.call(rbind, lapply(SearchResults, data.frame))
+SearchResultsDF[] <- lapply(SearchResultsDF, as.character)
+SearchResultsDF$publishedAt <- SearchResultsDF$publishedAt %>% as_datetime(tz = "UTC", format = NULL)
+SearchResultsDF <- select(SearchResultsDF, video_id, publishedAt, title, channelTitle) %>% arrange(desc(publishedAt))
 
-#type in list of videos IDS
-video_list <- c("mM45rpHMZD4", "WsUBnOv70Mw", "qzrw8-TZN_A", "KxtGJsnLgSc", "aPLEJKluMgU")
+#filter results by date in RFC339 format  (???)
+SearchResultsDF <- SearchResultsDF %>% filter(publishedAt > "2020-03-01T00:00:00Z")
+#final list of videos
+video_list <-as.vector(SearchResultsDF$video_id)
+```
 
-#testing API
-#get_all_comments(video_id = video_list[1])
-stats <- get_stats("mM45rpHMZD4")
-View(stats)
-
-
-######## NEW MAPS for collecting comments
+### Scrape available comments from those videos
+```{r scrape_available_comments}
+#gets video comments from API and converts to dataframe
+#uses possibly to avoid error messages for unavailable comments
 get_avlbl_comments <- possibly(get_all_comments, otherwise = NULL)
-#?possibly()
 AllComments <- map(video_list, get_avlbl_comments)
+AllCommentsDF <- do.call(rbind, lapply(AllComments, data.frame))
+#View(AllCommentsDF)
 
-#reduce possibly output (which is a list) to a dataframe, if you prefer (and we do for this code)
-AllComments_df <- AllComments %>% reduce(full_join)
+#displays which video comments were scraped 
+AllCommentsVideos <- unique(AllCommentsDF$videoId)
+AllCommentsVideos
+#View(AllCommentsVideos)
+```
 
 
-#safely
-#get_comments_safely <- safely(get_all_comments, otherwise = NULL)
-#AllCommentswErrors <- map(video_list, get_comments_safely)
+### Scrape Metadata (includes video titles)
+```{r scrape_and_join_metadata}
+#joins video metadata to comments and renames columns for clarity
+AllCommentsMetadata <- inner_join(AllCommentsDF, SearchResultsDF, by = c("videoId" = "video_id"))
+AllCommentsMetadata <- rename(AllCommentsMetadata, c(commentPublishedAt = publishedAt.x, 
+                                                     commentUpdatedAt = updatedAt,
+                                                     commentLikeCount = likeCount,
+                                                     commentId = id,
+                                                     videoPublishedAt= publishedAt.y,
+                                                     videoTitle = title,
+                                                     videoChannelTitle = channelTitle))
+#COMMENTS <- AllCommentsMetadata
 
 
-### piping in data from the other script
-AllComments_df <- AllCommentsMetadata_aj
+#confirm videos scraped and number of comments per video
+totalScraped <- AllCommentsMetadata %>% group_by(videoId) %>% tally() %>% arrange(desc(n))
+View(totalScraped)
+
+
+#remove videos with less than 100 comments and view final count
+tooFew <- filter(totalScraped, n < 100)
+AllCommentsMetadata_aj <- AllCommentsMetadata %>% anti_join(tooFew)
+AllCommentsMetadata_aj %>% group_by(videoId) %>% tally() %>% arrange(desc(n))
+
+#output comments and metadata
+#write.csv(AllCommentsMetadata, "AllCommentsMetadata2.csv")
 
 ```
 
+### See Comments
 ```{r see_which_comments, echo=T}
 #displays which videos were scraped
 AllCommentsVideos <- unique(AllCommentsDF$videoId)
-AllCommentsVideos
-
-
+#View(AllCommentsVideos)
 ```
 
-
+### Save Comment Data
 ```{r output_comments, eval=F, echo=F}
 #output comments
 write.csv(AllComments_df, paste("AllComments_", subject.s, ".csv", sep=""))
 ```
-
 
 
 
