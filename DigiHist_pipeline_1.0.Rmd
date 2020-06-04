@@ -6,16 +6,20 @@ output:
   html_document: default
   pdf_document: default
 ---
-### Setup 
+
+# SETUP
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(eval=TRUE)
-#knitr::opts_root.dir$.... #@ I don't know the proper syntax for setting the directory here
+#knitr::opts_root.dir$.... #@ there is syntax for correctly setting a directory alternate to the base one here.
+#@ I don't think we even need to worry about that, though.
 
 ```
+
 ### Install Packages 
 ```{r install_packages, eval=F}
 # Install Packages and Library Calls
+#install.packages("knitr")
 #install.packages("NLP")
 #install.packages("tm")
 #install.packages("tidyverse")
@@ -26,10 +30,12 @@ knitr::opts_chunk$set(eval=TRUE)
 #install.packages("tuber")
 #install.packages("gtools")
 #install.packages("data.table")
-
+#install.packages("lubridate")
 ```
+
 ### Call Libraries
 ```{r call_libraries, echo=F, results='hide'}
+#library(kintr)
 library(NLP)
 library(tm)
 library(tidyverse)
@@ -40,28 +46,61 @@ library(RColorBrewer)
 library(tuber)
 library(gtools)
 library(data.table)
+library(lubridate)
+```
 
-
-
+### Set Parameters / Tolerances
+```{r Parameters_and_Tolerances, echo=F, results='hide'}
 # CLEANUP your workspace
 ##                     __       rm(list=ls())
+
+subject_s <- "COVID"  #@ what the project is about (this will appear in visualization titles and file names)
+SearchTerms <- c("reopening america", "reopen america", "#reopenamerica", "freeamericanow")
+#@ these are the keyword terms which will be used to identify videos
+
+
+# (other video parameters?)
+
+# How many characters do you want your comments to be at minimum, initially?
+
+# How many tokens (minimum) do you want your final comments to have post-stopwords and sparsity?
+
+# Other relevant up-front parameters?
+
 ```
 
-### Directories 
+# DATA and Directories
+```{r create_directories, echo=F, results='hide'}
+# Set Working Directory, get data (not currently needed, since data is scraped)  
+#@ also, in markdown, you have to reset the directory in each chunk, if /as necessesary
 
-```{r directories, echo=F, results='hide'}
-# Set Working Directory, get data    #@ looks like you have to reset the directory in each chunk, if /as necessesary
-
-## NEW
-subject.s <- "COVID_19"  #@ what the project is about
-input.dir <- "Data/" #@ this folder contains .csv files of comment data (old skool)
-proj.dir <- "~/YouTube WordFish Pipeline/"
-
+input.dir <- "csv_Data/" #@ this folder contains .csv files of comment data (old skool)
+proj.dir <- "~/Box Sync/Consulting/DSC_Youtube/"
 
 setwd(proj.dir)
+getwd()
+```
+
+### chunk to read-in data
+Do we want to keep this in?  Right now, it will be 'ignored' by the kint markdown report
+```{r read_data, echo=F, results='hide'}
+#files.v <- dir(input.dir, "\\.csv$")   # old version used .tab$
+#head(files.v)
+
+#?stringi()
+#?head()
+
+#length(files.v)
+#files.v
+
+###### test read in the article subset
+#test.csv.df <- read.csv(paste(data.dir, input.dir, files.v[1], sep="/"), quote = "", stringsAsFactors=FALSE)
+#View(head(test.tab.df))
+#nrow(test.csv.df)
 ```
 
 
+# Code BEGINS here Proper
 ### Create(scrape) comment data object
 ```{r scrape_comments, echo=T, results='hide'}
 
@@ -91,8 +130,16 @@ AllComments <- map(video_list, get_avlbl_comments)
 #reduce possibly output (which is a list) to a dataframe, if you prefer (and we do for this code)
 AllComments_df <- AllComments %>% reduce(full_join)
 
-```
 
+#safely
+#get_comments_safely <- safely(get_all_comments, otherwise = NULL)
+#AllCommentswErrors <- map(video_list, get_comments_safely)
+
+
+### piping in data from the other script
+AllComments_df <- AllCommentsMetadata_aj
+
+```
 
 ```{r see_which_comments, echo=T}
 #displays which videos were scraped
@@ -102,32 +149,13 @@ AllCommentsVideos
 
 ```
 
+
 ```{r output_comments, eval=F, echo=F}
 #output comments
 write.csv(AllComments_df, paste("AllComments_", subject.s, ".csv", sep=""))
 ```
 
-```{r subset_comments_toTroubleshootDataErrors, eval=F, echo=F}
-halver <- halver_firsthalf; nrow(halver)
 
-halver_firsthalf <- halver[1:(.5*floor(nrow(halver)))+5, ]
-halver_secondhalf <- halver[(.5*floor(nrow(halver))-5):nrow(halver), ]
-nrow(halver_firsthalf); nrow(halver_secondhalf)
-#View(halver_secondhalf)
-
-secondhalf <- halver_secondhalf
-
-
-fuller <- rbind(halver_firsthalf, secondhalf)
-nrow(fuller); nrow(halver)
-
-complete_comments <- fuller # this is the first half + of second quarter
-#AllCommentsRaw <- purrr::map_df(.x = video_list, .f = get_all_comments)
-
-
-files.v <- video_list
-
-```
 
 
 #Tokenize 'elaborate' (long + multi-type) comments
