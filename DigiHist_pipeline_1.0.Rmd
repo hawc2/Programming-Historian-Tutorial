@@ -106,8 +106,7 @@ Do we want to keep this in?  Right now, it will be 'ignored' by the kint markdow
 
 #saving the client ID and client secret for subsequent use by the tuber package
 #at prompt choose "1: Yes"
-source("API_Keys.R")
-#?source()
+source("Config.R")
 
 app_id <- API_ID
 app_secret <- API_Secret
