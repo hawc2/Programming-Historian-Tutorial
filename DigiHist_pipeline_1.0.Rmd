@@ -1,6 +1,6 @@
 ---
 title: "Programming Historian on YouTube Comments in Wordfish"
-author: "Jeff Antsen, Nicole Lemire-Garlic, Alex Wermer-Colannnnn"
+author: "Jeff Antsen, Nicole Lemire-Garlic, Alex Wermer-Colan"
 date: "6/2/2020"
 output:
   html_document: default
@@ -67,7 +67,7 @@ setwd(proj.dir)
 
 #saving the client ID and client secret for subsequent use by the tuber package
 #at prompt choose "1: Yes"
-source("API_Keys.R")
+source("API_OAuth.R")
 
 app_id <- API_ID
 app_secret <- API_Secret
