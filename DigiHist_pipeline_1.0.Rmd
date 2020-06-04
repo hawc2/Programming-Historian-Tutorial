@@ -8,6 +8,7 @@ output:
 ---
 
 # SETUP
+### Set code block default prefs
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(eval=TRUE)
@@ -50,53 +51,30 @@ library(lubridate)
 ```
 
 ### Set Parameters / Tolerances
+~~ Do we want to do this here, or in the Config file?  Might make more sense there...?
 ```{r Parameters_and_Tolerances, echo=F, results='hide'}
 # CLEANUP your workspace
-##                     __       rm(list=ls())
+##       __       rm(list=ls())
+
 
 subject_s <- "COVID_and_Opening_America"  #@ what the project is about (this will appear in visualization titles and file names)
 SearchTerms <- c("reopening america", "reopen america", "#reopenamerica", "freeamericanow", "#freeamericanow")
 #@ these are the keyword terms which will be used to identify videos
 
 
-# (other video parameters?)
+#### (are there other video level parameters?)
 
+### (comment-level parameters?)
 # How many characters do you want your comments to be at minimum, initially?
-
 # How many tokens (minimum) do you want your final comments to have post-stopwords and sparsity?
 
-# Other relevant up-front parameters?
+
+### Any other relevant up-front parameters?
 
 ```
 
-# DATA and Directories
-```{r create_directories, echo=F, results='hide'}
-# Set Working Directory, get data (not currently needed, since data is scraped)  
-#@ also, in markdown, you have to reset the directory in each chunk, if /as necessesary
-
-input.dir <- "csv_Data/" #@ this folder contains .csv files of comment data (old skool)
-proj.dir <- "~/Box Sync/Consulting/DSC_Youtube/"
-
-#setwd(proj.dir)
-getwd()
-```
-
-### chunk to read-in data
-Do we want to keep this in?  Right now, it will be 'ignored' by the kint markdown report
-```{r read_data, echo=F, results='hide'}
-#files.v <- dir(input.dir, "\\.csv$")   # old version used .tab$
-#head(files.v)
-
-#?stringi()
-#?head()
-
-#length(files.v)
-#files.v
-```
-
-
-# Code BEGINS here Proper
 ### Authorize your API account
+Remember to push 1 for 'yes; in the CONSOLE! And then log into your gmail/google account.
 ```{r authorize, echo=T, results='hide'}
 #Saving the client ID and client secret for subsequent use by the tuber package
 #at prompt choose "1: Yes IN THE CONSOLE!"
@@ -108,7 +86,11 @@ app_secret <- API_Secret
 yt_oauth(app_id, app_secret)
 ```
 
-### Get list of matching videos
+
+
+# 'CODE' begins here
+### Get list of videos matching your search terms
+and organize that video list
 ```{r get_video_list}
 SearchResults <- map(SearchTerms, yt_search)
 SearchResultsDF <- do.call(rbind, lapply(SearchResults, data.frame))
@@ -133,8 +115,9 @@ AllCommentsDF <- do.call(rbind, lapply(AllComments, data.frame))
 
 #displays which video comments were scraped 
 AllCommentsVideos <- unique(AllCommentsDF$videoId)
-AllCommentsVideos
-#View(AllCommentsVideos)
+
+
+print(paste("You have identified", length(AllCommentsVideos), "unique videos with: ", paste(SearchTerms, collapse=" "),"!"))
 ```
 
 
@@ -562,6 +545,102 @@ beep("complete")
 beep("mario")
 ```
 
+
+
+
+
+
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+# HELPFUL MARKDWON SYNTAX REFERENCE SECTION 
+### this is NOT for the final version - just leaving it in until we have the syntax down pat
+(random extra sample code and whatnot)
+
+`r 2+3`  
+`2+3`
+
+$A = pi*r^2$  
+$$V = 1/3(pi*r^3)$$
+
+```{r echo=TRUE}
+# you NEED {r}!
+## moar code
+moar <- "moar code here"
+print(moar)
+vec <- c(1,2,3,4,5)
+str.vec <- c("a", "b", "c")
+```
+
+```{r, echo=FALSE}
+#doesn't work without {r}
+#moar code
+moarr <- "moar code again"
+print(moarr)
+```
+
+### examples
+
+`r moarr`  
+```{r, collapse=FALSE, echo=TRUE, eval=FALSE}
+print("this is a string")
+```
+`vec`  
+`r c(vec, str.vec)`  
+`r mean(c(1,2,3,4,5))`
+
+text1  
+text2  
+text3
+text3.5
+### R Markdown tutorial
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+# DON'T NEED THIS PROBABLY
+### Directory Paths
+I don't think we'll need this chunk.  Right now, it will be 'ignored' by the kint markdown report.
+```{r create_directories, echo=F, results='hide', eval=F}
+# Set Working Directory, get data (not currently needed, since data is scraped)  
+#@ also, in markdown, you have to reset the directory in each chunk, if /as necessesary
+
+input.dir <- "csv_Data/" #@ this folder contains .csv files of comment data (old skool)
+proj.dir <- "~/Box Sync/Consulting/DSC_Youtube/"
+
+#setwd(proj.dir)
+getwd()
+```
+
+### Read-in data
+I don't think we'll need this chunk either.  
+```{r read_data, echo=F, results='hide', eval=F}
+#files.v <- dir(input.dir, "\\.csv$")   # old version used .tab$
+#head(files.v)
+
+#?stringi()
+#?head()
+
+#length(files.v)
+#files.v
+```
+
 ### @Extra code here - word clouds and wordscore trials
 ```{r extra_code, echo=FALSE, eval=FALSE}
 #
@@ -659,69 +738,3 @@ ws <- classic.wordscores(r, scores=c(0,1.4))
 #
 
 ```
-
-
-
-
-
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-# START META  
-(random extra sample code and whatnot)
-
-`r 2+3`  
-`2+3`
-
-$A = pi*r^2$  
-$$V = 1/3(pi*r^3)$$
-
-```{r echo=TRUE}
-# you NEED {r}!
-## moar code
-moar <- "moar code here"
-print(moar)
-vec <- c(1,2,3,4,5)
-str.vec <- c("a", "b", "c")
-```
-
-```{r, echo=FALSE}
-#doesn't work without {r}
-#moar code
-moarr <- "moar code again"
-print(moarr)
-```
-
-### examples
-
-`r moarr`  
-```{r, collapse=FALSE, echo=TRUE, eval=FALSE}
-print("this is a string")
-```
-`vec`  
-`r c(vec, str.vec)`  
-`r mean(c(1,2,3,4,5))`
-
-text1  
-text2  
-text3
-text3.5
-### R Markdown tutorial
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
-```
-
-Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
-
