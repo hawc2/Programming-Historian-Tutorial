@@ -87,8 +87,7 @@ yt_oauth(app_id, app_secret)
 ```
 
 
-
-# 'CODE' begins here
+# SCRAPING DATA - 'code' begins here
 ### Get list of videos matching your search terms
 and organize that video list
 ```{r get_video_list}
@@ -98,30 +97,25 @@ SearchResultsDF[] <- lapply(SearchResultsDF, as.character)
 SearchResultsDF$publishedAt <- SearchResultsDF$publishedAt %>% as_datetime(tz = "UTC", format = NULL)
 SearchResultsDF <- select(SearchResultsDF, video_id, publishedAt, title, channelTitle) %>% arrange(desc(publishedAt))
 
-#filter results by date in RFC339 format  (???)
+#filter results by date in RFC339 format  (??? dunno what this means)
 SearchResultsDF <- SearchResultsDF %>% filter(publishedAt > "2020-03-01T00:00:00Z")
-#final list of videos
-video_list <-as.vector(SearchResultsDF$video_id)
+video_list <-as.vector(SearchResultsDF$title) #final list of videos
 ```
 
-### Scrape available comments from those videos
+### Scrape available comments on each of those videos
+This chunk gets all available video comments from API, and converts to a dataframe, using `r possibly()` to avoid error messages for unavailable videos comments.
 ```{r scrape_available_comments}
-#gets video comments from API and converts to dataframe
-#uses possibly to avoid error messages for unavailable comments
 get_avlbl_comments <- possibly(get_all_comments, otherwise = NULL)
 AllComments <- map(video_list, get_avlbl_comments)
 AllCommentsDF <- do.call(rbind, lapply(AllComments, data.frame))
 #View(AllCommentsDF)
 
-#displays which video comments were scraped 
-AllCommentsVideos <- unique(AllCommentsDF$videoId)
-
-
-print(paste("You have identified", length(AllCommentsVideos), "unique videos with: ", paste(SearchTerms, collapse=" "),"!"))
+AllCommentsVideos <- unique(AllCommentsDF$videoId)  #stores which video comments were scraped 
+print(paste(nrow(AllCommentsDF), "comments from", length(AllCommentsVideos), "unique videos identified using the", length(SearchTerms) ,"tags: ", paste(SearchTerms, collapse=", "),".  =)"))
 ```
 
 
-### Scrape Metadata (includes video titles)
+### Merge Metadata (includes video titles) from Search Results
 ```{r scrape_and_join_metadata}
 #joins video metadata to comments and renames columns for clarity
 AllCommentsMetadata <- inner_join(AllCommentsDF, SearchResultsDF, by = c("videoId" = "video_id"))
@@ -132,73 +126,67 @@ AllCommentsMetadata <- rename(AllCommentsMetadata, c(commentPublishedAt = publis
                                                      videoPublishedAt= publishedAt.y,
                                                      videoTitle = title,
                                                      videoChannelTitle = channelTitle))
-#COMMENTS <- AllCommentsMetadata
+#View(AllCommentsMetadata)
+```
 
+```{r reconfig_metadata}
+totalScraped <- AllCommentsMetadata %>% group_by(videoTitle) %>% tally() %>% arrange(desc(n)) 
 
-#confirm videos scraped and number of comments per video
-totalScraped <- AllCommentsMetadata %>% group_by(videoId) %>% tally() %>% arrange(desc(n))
-View(totalScraped)
+tooFew <- filter(totalScraped, n < 49) #identify videos with less than 50 comments
+AllCommentsMetadata_aj <- AllCommentsMetadata %>% anti_join(tooFew) # remove them
+AllCommentsMetadata_aj %>% group_by(videoTitle) %>% tally() %>% arrange(desc(n))
 
+#View(AllCommentsMetadata_aj)
+```
 
-#remove videos with less than 100 comments and view final count
-tooFew <- filter(totalScraped, n < 100)
-AllCommentsMetadata_aj <- AllCommentsMetadata %>% anti_join(tooFew)
-AllCommentsMetadata_aj %>% group_by(videoId) %>% tally() %>% arrange(desc(n))
+### See Videos with Enough Comments
+```{r see_which_comments, echo=F}
+VideosWithEnoughComments <- unique(AllCommentsMetadata_aj$videoTitle) 
+#View(VideosWithEnoughComments)  # the list of videos kept
 
-#output comments and metadata
-#write.csv(AllCommentsMetadata, "AllCommentsMetadata2.csv")
+### Here, eventually, I want to write code that adds 'short title' - the first 4? 5? words with >2 characters each
+#View(totalScraped) #confirm videos scraped and number of comments per video
+
+## I also want to keep the number of comments for the video producing each comment
 
 ```
 
-### See Comments
-```{r see_which_comments, echo=T}
-#displays which videos were scraped
-AllCommentsVideos <- unique(AllCommentsDF$videoId)
-#View(AllCommentsVideos)
-```
-
-### Save Comment Data
+### Optional -- Save Raw Comment Data
 ```{r output_comments, eval=F, echo=F}
-#output comments
-write.csv(AllComments_df, paste("AllComments_", subject.s, ".csv", sep=""))
+#output comments with their metadata
+#write.csv(AllCommentsMetadata, paste("AllComments_", subject.s, ".csv", sep=""))
 ```
 
 
 
-#Tokenize 'elaborate' (long + multi-type) comments
+#PREPROCESS longer comments
+This creates list of tokenized comment vectors, used to make the corpus object below
 ```{r tokenize_elaborate_comments, echo=F, results='hide'}
 
-###################### This creates list of tokenized comment vectors, used to make the corpus object below
 comment_tokens_l <- list()
 
-for (com in 1:nrow(AllComments_df)) {
-  sto <- NA
-  sto <- AllComments_df$textOriginal[com]
-  
-  #@ preprocess sto  
-  sto.list <- list()
+for (com in 1:nrow(AllCommentsMetadata_aj)) {
+  sto <- AllCommentsMetadata_aj$textOriginal[com]
+        #@ preprocess each comment, keep 
+  stolist <- list()
   sto <- tolower(sto)
-  sto.list <- strsplit(sto, "\\W")
-  sto.text <- unlist(sto.list)
-  sto_rm <- sto.text[-which(sto.text == "")]; sto.text <- sto_rm
-  if(length (sto.text) >= 40 & length(unique(sto.text)) >=15 ) {
-    #@ create list.head               
-    list.head <- NA
-    list.head <- AllComments_df$id[com]
-    #list.head <- substring(list.head, 1, nchar(list.head)-20)  (subset the comment title string if/as desired)
-    comment_tokens_l[[list.head]] <- sto.text
-  
+  sto_list <- strsplit(sto, "\\W")
+  sto_text <- unlist(sto_list)
+  sto_rm <- sto_text[-which(sto_text == "")]; sto_text <- sto_rm
+  if(length (sto_text) >= 8 & length(unique(sto_text)) >=5 ) {   #@ comments with at least 8 words, 5 of which are unique
+        #@ create list.head               
+    list.head <- paste(AllCommentsMetadata_aj$videoTitle[com], "%_%", AllCommentsMetadata_aj$commentId[com]) # unique com names
+    comment_tokens_l[[list.head]] <- sto_text
   }}
-print(paste("keeping",length(comment_tokens_l), "out of", nrow(AllComments_df),"comments"))
+
+print(paste("keeping",length(comment_tokens_l), "out of", nrow(AllCommentsMetadata_aj),"comments"))
 
 
-#View(comment_tokens_l)
+View(comment_tokens_l)
 #View(AllComments_df)
 
-list_names <- names(comment_tokens_l)
-
-#head(list.names)
-#View(list.data)
+comment_names <- names(comment_tokens_l)  ## CHANGED THE NAME OF THIS!!
+beep("coin")
 ```
 
 ### Get Ready to Wordfish!
