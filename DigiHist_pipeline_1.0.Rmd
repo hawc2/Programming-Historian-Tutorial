@@ -111,6 +111,10 @@ AllCommentsDF <- do.call(rbind, lapply(AllComments, data.frame))
 #View(AllCommentsDF)
 
 AllCommentsVideos <- unique(AllCommentsDF$videoId)  #stores which video comments were scraped 
+beep("coin")
+```
+
+```{r how_many_videos}
 print(paste(nrow(AllCommentsDF), "comments from", length(AllCommentsVideos), "unique videos identified using the", length(SearchTerms) ,"tags: ", paste(SearchTerms, collapse=", "),".  =)"))
 ```
 
@@ -157,9 +161,7 @@ VideosWithEnoughComments <- unique(AllCommentsMetadata_aj$videoTitle)
 #write.csv(AllCommentsMetadata, paste("AllComments_", subject.s, ".csv", sep=""))
 ```
 
-
-
-#PREPROCESS longer comments
+#TOKENIZE longer comments
 This creates list of tokenized comment vectors, used to make the corpus object below
 ```{r tokenize_elaborate_comments, echo=F, results='hide'}
 
@@ -175,69 +177,96 @@ for (com in 1:nrow(AllCommentsMetadata_aj)) {
   sto_rm <- sto_text[-which(sto_text == "")]; sto_text <- sto_rm
   if(length (sto_text) >= 8 & length(unique(sto_text)) >=5 ) {   #@ comments with at least 8 words, 5 of which are unique
         #@ create list.head               
-    list.head <- paste(AllCommentsMetadata_aj$videoTitle[com], "%_%", AllCommentsMetadata_aj$commentId[com]) # unique com names
+    list.head <- paste(AllCommentsMetadata_aj$videoTitle[com],"%_%", AllCommentsMetadata_aj$commentId[com]) # unique comment names
     comment_tokens_l[[list.head]] <- sto_text
   }}
-
-print(paste("keeping",length(comment_tokens_l), "out of", nrow(AllCommentsMetadata_aj),"comments"))
-
-
-View(comment_tokens_l)
-#View(AllComments_df)
-
-comment_names <- names(comment_tokens_l)  ## CHANGED THE NAME OF THIS!!
 beep("coin")
+comment_tokens_l[[1]]
 ```
 
-### Get Ready to Wordfish!
+```{r how_many_comments_1}
+print(paste("keeping",length(comment_tokens_l), "out of", nrow(AllCommentsMetadata_aj),"comments ;",round((length(comment_tokens_l)/nrow(AllCommentsMetadata_aj))*100, 2), "% of total comments kept" ))
+```
+
+### Making the Corpus
 ```{r data_reshape_for_WF, echo=FALSE, warning=FALSE, results='hide'}
-##
-
-
-  # "\n" for newline separator. This may or may not be needed depeing on your data
-  # May try with or without the "sep" argument, or try feeding into "sep" other kinds of seperator
-
-
 ####### Turn the list of comment files into a corpus data object
 ####### this kind of analyisscan only be executed on a corpus object
 comment_corpus <- Corpus(VectorSource(comment_tokens_l))   #@ this function needs a list of tokenized char vectors
 
-#str(comment_corpus)
-#comment_corpus[["1"]][["content"]]   # it can be good to try to visualize different aspects of your data objects
+for(com in 1:length(comment_corpus)){   # the Corpus() command is mysteriously adding leading "c"s to comments, this removes them
+  if(substr(comment_corpus[[com]]$content,1,1)=="c")
+    comment_corpus[[com]]$content<- substr(comment_corpus[[com]]$content, 2, nchar(comment_corpus[[com]]$content))}
 
 comment_corpus <- tm_map(comment_corpus, removeNumbers)
 comment_corpus <- tm_map(comment_corpus, removePunctuation)
-#?tm_map()
 
-#my.stop <- stopwords("english")
 my_stop <- c(stopwords("english"),
              "c","x", "s", "t", "m", "amp", "youtube", "www", "com", "quot", "br", "http", "https", "")
 
 comment_corpus <- tm_map(comment_corpus, removeWords, my_stop)
 beep("coin")
 
-
 #!!!The DocumentTermMatrix
 dtm = DocumentTermMatrix(comment_corpus)
-#dtm
+dtm   # old DTM has 49,492 terms, new has 45,759 - removed 3733 terms caused due to leading "c"s
 
-#?DocumentTermMatrix()
+#View(dtm$dimnames$Terms)
+
 ```
 
-
-### Control Sparseness and Run the Wordfish model
-```{r WF_model, echo=TRUE, results='hide'}
+### Control Sparseness, pre remvoing bad comments
+```{r DTM_sparsity_control, echo=TRUE, results='hide'}
 ########################################
 ########## Set accepted sparsity parameter
 ########################################
-dtma = removeSparseTerms(dtm, sparse = .998)
+sparsity <- .999
+dtma = removeSparseTerms(dtm, sparse = sparsity)
 #@ including too many very sparse (infrequent) terms negatively impacts results
-beep("coin")
-#str(dtma)
-print(paste("using",length(dtma$dimnames$Terms),"words from", 
-            length(dtma$dimnames$Docs), "of", nrow(AllComments_df), "comments... trying to WF!"))
+dtma
+#dtma has 2779 terms, 54485 comments pre workup loop
 
+```
 
+```{r which_com_have_0_words_left?}
+### I need to wrap this in a 'while' loop!!!
+problem_comments <- NA
+
+while(length(problem_comments) > 0 ) {  # WHILE any problem comments remain
+  
+dtma_matrix <- as.matrix(dtma)
+
+problem_comments <- NA
+for(com in 1:ncol(dtma_matrix) ){
+  if(sum(dtma_matrix[com,]) < 6 ){
+    #print(comment_corpus[[com]]["content"])
+    problem_comments <- c(problem_comments, com)
+  }}
+#print(problem_comments)
+problem_comments <- problem_comments[(-1)]; 
+
+if(length(problem_comments) > 0 ){
+  print(paste("removing", length(problem_comments), "problem comments"))
+  comment_corpus <- comment_corpus[(-problem_comments)]   
+} else {
+    print("There don't appear to be any more comments with too few words")
+  }
+
+dtm1 <-DocumentTermMatrix(comment_corpus)  # make new DTM
+#dtm1
+dtma <- removeSparseTerms(dtm1, sparse=sparsity) # and remove sparse terms again
+
+rm(dtma_matrix)  #@ remove the ponderous dtma_matrix object
+}
+
+```
+
+```{r how_many_comments_2}
+print(paste("Modeling",length(dtma$dimnames$Terms),"words from", length(dtma$dimnames$Docs), "comments with a usable number of tokens, of the original", nrow(AllCommentsMetadata_aj), "comments... trying to WF!"))
+```
+
+### Fishin' for Words!
+```{r WORDFISH}
 ########################################
 ####### Running a wordfish model
 ########################################
