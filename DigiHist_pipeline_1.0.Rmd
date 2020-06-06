@@ -308,8 +308,8 @@ beep("complete")
 # Explore Wordfish --------------------------------------------------------
 
 #@ these commands isolate the document-level data
-wfa1$docs <- names(comment_tokens_l)
-wfdocs.v <- names(comment_tokens_l)
+wfa1$docs <- names(comment_list)  #@ I ACTUALLY need the 'names' from the final corpus object, after bad comments are removed
+comment_list
 
 wfdocs.v <- wfa1[["docs"]]
 theta <- wfa1[["theta"]]
@@ -340,25 +340,10 @@ hist(psi, breaks=50)    # fixed effect for term (aka ~type~) frequency
 ```
 
 ### Make Composite Data Objects
+For simpler indexing, and also objects that can hold more metadata than the WF model initially captures
 ```{r make_WF_data_objects, echo=FALSE, results='hide'}
-######################### Make Composite data objects
-#View(wfdocs.v)
 
-#######################  SOURCE is the news surce the article comes from  +++ need to 'keep' title somehow
-# length(wfdocs.v)
-source <- NA
-for (i in 1:length(wfdocs.v)){
-  sto<-NA
-  sto <- gsub("[0-9]", "", wfdocs.v[i])
-  sto <- gsub(".txt", "", sto)
-  sto <- gsub("article","",sto)
-  sto <- gsub("[:.:]","",sto)
-  source[i] <- sto
-}
-#View(head(source))
-
-
-#######################  TITLE is the title with metadata stripped out - find something relevant
+#######################  NEED TO TWEAK THIS to just strip off the title (or ideally short title) before %_%
 title<-NA
 for (i in 1:length(wfdocs.v)){
   sto<-NA
@@ -370,7 +355,7 @@ for (i in 1:length(wfdocs.v)){
 
 
 ### CREATE DOC DATA DATAFRAME
-wf_docdata.df <- data.frame(wfdocs.v, source, title, theta, alpha)
+wf_docdata.df <- data.frame(wfdocs.v, title, theta, alpha)
 #View(wf_docdata.df)
 
 
