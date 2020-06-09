@@ -58,8 +58,11 @@ library(lubridate)
 
 #### Save Pairings of Subject and SearchTerms for an easy record of which terms produced which results!
 
-subject_s <- "COVID_and_Opening_America"  #@ what the project is about (this will appear in visualization titles and file names)
-SearchTerms <- c("reopening america", "reopen america", "#reopenamerica", "freeamericanow", "#freeamericanow")
+#subject_s <- "COVID_and_Opening_America"  #@ what the project is about (this will appear in visualization titles and file names)
+#SearchTerms <- c("reopening america", "reopen america", "#reopenamerica", "freeamericanow", "#freeamericanow")
+
+subject_s <- "Floyd Chauvin and BLM"
+SearchTerms <- c("george floyd", "derek chauvin", "black lives matter")
 
 #subject_s <- "George Floyd"
 #SearchTerms <- c("George Floyd", "#Floyd", "#GeorgeFloyd")  #@ these are the keyword terms which will be used to identify videos
@@ -90,7 +93,7 @@ source("Config.R")
 
 app_id <- API_ID
 app_secret <- API_Secret
-?yt_oauth
+
 yt_oauth(app_id, app_secret)    #@ do we need to update or specify permissions for our oauth key?
 ```
 
@@ -115,6 +118,7 @@ length(video_list)
 
 ### Scrape available comments on each of those videos
 This chunk gets all available video comments from API, and converts to a dataframe, using `r possibly()` to avoid error messages for unavailable videos comments.
+
 ```{r scrape_available_comments}
 get_avlbl_comments <- possibly(get_all_comments, otherwise = NULL)
 AllComments <- map(video_list, get_avlbl_comments)
@@ -124,6 +128,7 @@ AllCommentsDF <- do.call(rbind, lapply(AllComments, data.frame))
 
 AllCommentsVideos <- unique(AllCommentsDF$videoId)  #stores which video comments were scraped 
 beep("coin")
+nrow(AllCommentsVideos)
 ```
 
 
@@ -175,12 +180,16 @@ VideosWithEnoughComments <- unique(AllCommentsMetadata_aj$videoTitle)
 ### Recommended -- Save and/or Read Back In data
 ```{r output_comments, eval=F, echo=F}
 # Save your data
-write.csv(AllCommentsMetadata_aj, paste("Data/AllComments_", subject.s, ".csv", sep=""))
+write.csv(AllCommentsMetadata_aj, paste("Data/AllComments_", subject_s, ".csv", sep=""))
 
 # Read it back in (since youtube is unreliable, SAVE your data once acquired, so you can work with it later! Don't be me!)
 
-data <- read.delim(paste("Data/AllComments_", subject.s, ".csv", sep=""))
-#@ data <-   if there's any workup needed to get back to the identitcal data object that was saved out
+#data <- read.csv(paste("Data/AllComments_", subject_s, ".csv", sep=""))
+data <- read.csv(paste("Data/AllCommentsMetadata 6 9 20", ".csv", sep=""))  # -- using sample dataset
+
+
+View(data)
+#@ data <-   if there's any workup needed to get back to the identitcal data object that was saved out, do it here
   
 AllCommentsMetadata_aj <- data
 ```
@@ -199,13 +208,13 @@ for (com in 1:nrow(AllCommentsMetadata_aj)) {
   sto_list <- strsplit(sto, "\\W")
   sto_text <- unlist(sto_list)
   sto_rm <- sto_text[-which(sto_text == "")]; sto_text <- sto_rm
-  if(length (sto_text) >= 8 & length(unique(sto_text)) >=5 ) {   #@ comments with at least 8 words, 5 of which are unique
+  if(length (sto_text) >= 50 & length(unique(sto_text)) >=10 ) {   #@ comments with at least 8 words, 5 of which are unique
         #@ create list.head               
     list.head <- paste(AllCommentsMetadata_aj$videoTitle[com],"%_%", AllCommentsMetadata_aj$commentId[com]) # unique comment names
     comment_tokens_l[[list.head]] <- sto_text
   }}
 beep("coin")
-comment_tokens_l[[1]]
+#comment_tokens_l[[1]]
 ```
 
 ```{r how_many_comments_1}
@@ -219,8 +228,8 @@ print(paste("keeping",length(comment_tokens_l), "out of", nrow(AllCommentsMetada
 comment_corpus <- Corpus(VectorSource(comment_tokens_l))   #@ this function needs a list of tokenized char vectors
 
 for(com in 1:length(comment_corpus)){   # the Corpus() command is mysteriously adding leading "c"s to comments, this removes them
-  if(substr(comment_corpus[[com]]$content,1,1)=="c")
-    comment_corpus[[com]]$content<- substr(comment_corpus[[com]]$content, 2, nchar(comment_corpus[[com]]$content))}
+  if(substr(comment_corpus[[com]]$content,1,1)=="c"){
+    comment_corpus[[com]]$content<- substr(comment_corpus[[com]]$content, 2, nchar(comment_corpus[[com]]$content))}}
 
 comment_corpus <- tm_map(comment_corpus, removeNumbers)
 comment_corpus <- tm_map(comment_corpus, removePunctuation)
@@ -233,7 +242,7 @@ beep("coin")
 
 #!!!The DocumentTermMatrix
 dtm = DocumentTermMatrix(comment_corpus)
-dtm   # old DTM has 49,492 terms, new has 45,759 - removed 3733 terms caused due to leading "c"s
+dtm   # old DTM has 56,732 terms, new has 52,297 - removed 4435 terms caused due to leading "c"s
 
 #View(dtm$dimnames$Terms)
 
@@ -295,11 +304,18 @@ print(paste("Modeling",length(dtma$dimnames$Terms),"words from", length(dtma$dim
 ########################################
 ####### Running a wordfish model
 ########################################
+possibly_fish <- possibly(wordfish, otherwise=NULL)
+#wfa1 <- possibly_fish(as.wfm(dtma), dir=c(1, 2), control = list(tol = 3.0e-5), verbose = T)
 wfa1 <- wordfish(as.wfm(dtma), dir=c(1, 2), control = list(tol = 3.0e-5), verbose = T)
+wfa1
 # beeps are useful to signify when long processes have completed
 beep("coin")
-beep("complete")
 ```
+
+
+
+
+
 
 ### Store data from WF model
 ```{r store_WF_model_data, echo=FALSE}
@@ -383,7 +399,7 @@ user_T_A_plot <- ggplot(data = wf_docdata.df, mapping = aes(x =theta, y = alpha,
 user_T_A_plot 
 
 
-ggsave(paste(subject.s, "SUBSET_user_T_A_plot.pdf",sep=""), device="pdf")
+ggsave(paste(subject_s, "SUBSET_user_T_A_plot.pdf",sep=""), device="pdf")
 
 
 
@@ -392,11 +408,11 @@ ggsave(paste(subject.s, "SUBSET_user_T_A_plot.pdf",sep=""), device="pdf")
 #  geom_text(size = .7) + 
 #  labs(x = "Doc polarity: an optimized value (theta)", y = "Doc length: a fixed effect (alpha)") +
 #  guides(size = "none", color = guide_legend("")) + theme(legend.position="bottom") +
-#  labs(title = paste (subject.s, 
+#  labs(title = paste (subject_s, 
 #                      " comments from ABC YouTube Videos:\n Article IDs plotted, shaded by comment thread source", #sep="")) 
 ##     __ 
 #source_T_A_plot
-#ggsave(paste(subject.s, "SUBSET_source_T_A_plot.pdf",sep=""), device="pdf")
+#ggsave(paste(subject_s, "SUBSET_source_T_A_plot.pdf",sep=""), device="pdf")
 
 
 
@@ -405,12 +421,12 @@ source_T_A_plot <- ggplot(data = wf_docdata.df, mapping = aes(x =theta, y = alph
   geom_text(size = 1) + 
   labs(x = "Doc polarity: an optimized value (theta)", y = "Doc length: a fixed effect (alpha)") +
   #guides(size = "none", color = guide_legend("")) + theme(legend.position="bottom") +
-  labs(title = paste (subject.s, 
+  labs(title = paste (subject_s, 
                       " comments from ABC YouTube Videos:\n Article IDs plotted, shaded by comment thread source", sep="")) 
 ##     __ 
 source_T_A_plot
 
-#ggsave(paste(subject.s, "SUBSET_colorless_T_A_plot.pdf",sep=""), device="pdf")
+#ggsave(paste(subject_s, "SUBSET_colorless_T_A_plot.pdf",sep=""), device="pdf")
 
 
 ######################## FIRST PLOT of two word parameters: BETA against PSI, basic black and white
@@ -425,7 +441,7 @@ word_P_B_plot <- ggplot(data = wf_worddata.df, mapping = aes(x = beta, y = psi, 
 word_P_B_plot
 getwd()
 
-ggsave(paste(subject.s, "Word_P_B_plot.pdf",sep=""), device="pdf")
+ggsave(paste(subject_s, "Word_P_B_plot.pdf",sep=""), device="pdf")
 
 ```
 
@@ -541,7 +557,7 @@ wordLegend_P_B_plot <- ggplot(data = wf_worddata.df, mapping = aes(x = beta, y =
 ######           __
 wordLegend_P_B_plot
 
-#ggsave(paste(subject.s, "_QQQQ_SUBSET_wordLegend_P_B_plot.pdf",sep=""), device="pdf")
+#ggsave(paste(subject_s, "_QQQQ_SUBSET_wordLegend_P_B_plot.pdf",sep=""), device="pdf")
 
 
 
