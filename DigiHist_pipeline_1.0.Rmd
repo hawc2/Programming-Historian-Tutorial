@@ -1,6 +1,6 @@
 ---
 title: "Programming Historian on YouTube Comments in Wordfish"
-author: "Jeff Antsen, Nicole Lemire-Garlic, Alex Wermer-Colan"
+author: "Jeff Antsen, Nicole Lemire Garlic, Alex Wermer-Colan"
 date: "6/3/2020"
 output:
   html_document: default
@@ -87,7 +87,7 @@ SearchTerms <- c("george floyd", "derek chauvin", "black lives matter")
 Remember to push 1 for 'yes; in the CONSOLE! And then log into your gmail/google account.
 ```{r authorize, echo=T, results='hide'}
 #Saving the client ID and client secret for subsequent use by the tuber package
-#at prompt choose "1: Yes IN THE CONSOLE!"
+#the first time you authorize your credentials, at prompt choose "1: Yes IN THE CONSOLE!"
 #this creates your personal .httr-oauth file - you only need to do this once, as long as you don't delete that file!
 source("Config.R")
 
