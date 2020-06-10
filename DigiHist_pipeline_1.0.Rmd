@@ -58,11 +58,11 @@ library(lubridate)
 
 #### Save Pairings of Subject and SearchTerms for an easy record of which terms produced which results!
 
-#subject_s <- "COVID_and_Opening_America"  #@ what the project is about (this will appear in visualization titles and file names)
-#SearchTerms <- c("reopening america", "reopen america", "#reopenamerica", "freeamericanow", "#freeamericanow")
+subject_s <- "COVID_and_Opening_America"  #@ what the project is about (this will appear in visualization titles and file names)
+SearchTerms <- c("reopening america", "reopen america", "#reopenamerica", "freeamericanow", "#freeamericanow")
 
-subject_s <- "Floyd Chauvin and BLM"
-SearchTerms <- c("george floyd", "derek chauvin", "black lives matter")
+#subject_s <- "Floyd Chauvin and BLM"
+#SearchTerms <- c("george floyd", "derek chauvin", "black lives matter")
 
 #subject_s <- "George Floyd"
 #SearchTerms <- c("George Floyd", "#Floyd", "#GeorgeFloyd")  #@ these are the keyword terms which will be used to identify videos
@@ -181,16 +181,17 @@ VideosWithEnoughComments <- unique(AllCommentsMetadata_aj$videoTitle)
 ```{r output_comments, eval=F, echo=F}
 # Save your data
 write.csv(AllCommentsMetadata_aj, paste("Data/AllComments_", subject_s, ".csv", sep=""))
-
+```
 # Read it back in (since youtube is unreliable, SAVE your data once acquired, so you can work with it later! Don't be me!)
-
+```{r read_in_data}
 #data <- read.csv(paste("Data/AllComments_", subject_s, ".csv", sep=""))
-data <- read.csv(paste("Data/AllCommentsMetadata 6 9 20", ".csv", sep=""))  # -- using sample dataset
+#data <- read.csv(paste("Data/AllCommentsMetadata 6 9 20", ".csv", sep=""))  # -- using sample dataset
+data <- read.csv(paste("Data/AllCommentsMetadata 5 29 20", ".csv", sep=""))  # -- using sample dataset
 
 
-View(data)
+#View(data)
 #@ data <-   if there's any workup needed to get back to the identitcal data object that was saved out, do it here
-  
+nrow(data)
 AllCommentsMetadata_aj <- data
 ```
 
@@ -271,7 +272,7 @@ while(length(problem_comments) > 0 ) {  # WHILE any problem comments remain
 dtma_matrix <- as.matrix(dtma)
 
 problem_comments <- NA
-for(com in 1:ncol(dtma_matrix) ){
+for(com in 1:nrow(dtma_matrix) ){
   if(sum(dtma_matrix[com,]) < 6 ){
     #print(comment_corpus[[com]]["content"])
     problem_comments <- c(problem_comments, com)
@@ -283,13 +284,12 @@ if(length(problem_comments) > 0 ){
   print(paste("removing", length(problem_comments), "problem comments"))
   comment_corpus <- comment_corpus[(-problem_comments)]   
 } else {
-    print("There don't appear to be any more comments with too few words")
+    print("There don't appear to be any [more] comments with too few words")
   }
 
 dtm1 <-DocumentTermMatrix(comment_corpus)  # make new DTM
-#dtm1
-dtma <- removeSparseTerms(dtm1, sparse=sparsity) # and remove sparse terms again
 
+dtma <- removeSparseTerms(dtm1, sparse=sparsity) # and remove sparse terms again
 rm(dtma_matrix)  #@ remove the ponderous dtma_matrix object
 }
 
@@ -305,14 +305,13 @@ print(paste("Modeling",length(dtma$dimnames$Terms),"words from", length(dtma$dim
 ####### Running a wordfish model
 ########################################
 possibly_fish <- possibly(wordfish, otherwise=NULL)
-#wfa1 <- possibly_fish(as.wfm(dtma), dir=c(1, 2), control = list(tol = 3.0e-5), verbose = T)
-wfa1 <- wordfish(as.wfm(dtma), dir=c(1, 2), control = list(tol = 3.0e-5), verbose = T)
-wfa1
+wfa1 <- possibly_fish(as.wfm(dtma), dir=c(1, 2), control = list(tol = 3.0e-5), verbose = T)
+#wfa1 <- wordfish(as.wfm(dtma), dir=c(1, 2), control = list(tol = 3.0e-5), verbose = T)
+str(wfa1)
 # beeps are useful to signify when long processes have completed
 beep("coin")
+beep("complete")
 ```
-
-
 
 
 
@@ -324,8 +323,9 @@ beep("coin")
 # Explore Wordfish --------------------------------------------------------
 
 #@ these commands isolate the document-level data
-wfa1$docs <- names(comment_list)  #@ I ACTUALLY need the 'names' from the final corpus object, after bad comments are removed
-comment_list
+
+#wfa1$docs <- names(comment_list)  #@ I ACTUALLY need the 'names' of the final set of comments, after bad comments are removed
+
 
 wfdocs.v <- wfa1[["docs"]]
 theta <- wfa1[["theta"]]
@@ -363,10 +363,10 @@ For simpler indexing, and also objects that can hold more metadata than the WF m
 title<-NA
 for (i in 1:length(wfdocs.v)){
   sto<-NA
-  sto <- substr(wfdocs.v[i],1,12 )
+  #sto <- substr(wfdocs.v[i],1,12 )
   title[i] <- sto
 }
-#View(head(title))
+View(head(title))
 
 
 
@@ -399,10 +399,10 @@ user_T_A_plot <- ggplot(data = wf_docdata.df, mapping = aes(x =theta, y = alpha,
 user_T_A_plot 
 
 
-ggsave(paste(subject_s, "SUBSET_user_T_A_plot.pdf",sep=""), device="pdf")
+ggsave(paste("Visualizations/",subject_s, "SUBSET_user_T_A_plot.pdf",sep=""), device="pdf")
+```
 
-
-
+```{r}
 ###### Color by SOURCE  (this does not currently work)
 #source_T_A_plot <- ggplot(data = wf_docdata.df, mapping = aes(x =theta, y = alpha, label = title, color=source))+ 
 #  geom_text(size = .7) + 
@@ -412,10 +412,10 @@ ggsave(paste(subject_s, "SUBSET_user_T_A_plot.pdf",sep=""), device="pdf")
 #                      " comments from ABC YouTube Videos:\n Article IDs plotted, shaded by comment thread source", #sep="")) 
 ##     __ 
 #source_T_A_plot
-#ggsave(paste(subject_s, "SUBSET_source_T_A_plot.pdf",sep=""), device="pdf")
+#ggsave(paste("Visualizations/",subject_s, "SUBSET_source_T_A_plot.pdf",sep=""), device="pdf")
+```
 
-
-
+```{r}
 ###### COLORLESS
 source_T_A_plot <- ggplot(data = wf_docdata.df, mapping = aes(x =theta, y = alpha, label = title)) + 
   geom_text(size = 1) + 
@@ -426,9 +426,10 @@ source_T_A_plot <- ggplot(data = wf_docdata.df, mapping = aes(x =theta, y = alph
 ##     __ 
 source_T_A_plot
 
-#ggsave(paste(subject_s, "SUBSET_colorless_T_A_plot.pdf",sep=""), device="pdf")
+#ggsave(paste("Visualizations/",subject_s, "SUBSET_colorless_T_A_plot.pdf",sep=""), device="pdf")
+```
 
-
+```{r}
 ######################## FIRST PLOT of two word parameters: BETA against PSI, basic black and white
 #@***limiting by a critical max negitive psi value***
 word_P_B_plot <- ggplot(data = wf_worddata.df, mapping = aes(x = beta, y = psi, label = wf.words.v)) + 
@@ -438,15 +439,34 @@ word_P_B_plot <- ggplot(data = wf_worddata.df, mapping = aes(x = beta, y = psi, 
   labs(title = "Vocabulary Polarity in comment network cliques of one thread scraped from YouTube", 
        subtitle="'CNN reporter presses Trump: You promised Mexico would pay for wall'")
 ######           __
-word_P_B_plot
+#word_P_B_plot
 getwd()
 
-ggsave(paste(subject_s, "Word_P_B_plot.pdf",sep=""), device="pdf")
+ggsave(paste("Visualizations/", subject_s, "Word_P_B_plot.pdf",sep=""), device="pdf")
 
 ```
 
+### Final Beeps for All Done!
+```{r final_beeps, echo=TRUE}
+beep("coin");beep("coin")
+beep("complete")
+beep("mario")
+```
+
+
+
+
+# CURRENT END OF PIPELINE
+### We may choose to keep/adapt more down the road, or just delete it all
+
+
+
+
+
+
+
 ### Colorizing Key Words
-```{r give_keywords_color, echo=FALSE}
+```{r give_keywords_color, echo=FALSE, eval=FALSE}
 ######################## SO optimized!!
 #wf_worddata.df_unreduced <- wf_worddata.df
 ## RESET wf_worddata.df if/when needed     __ wf_worddata.df <- data.frame(word, beta, psi)
@@ -531,7 +551,7 @@ for(k in 1:length(ktH)){
 ```
 
 ### Final Colorized-by-words plot
-```{r word_color_vis, echo=FALSE, warning=FALSE}
+```{r word_color_vis, echo=FALSE, eval=FALSE, warning=FALSE}
 
 #+++++++++++++++  use this step to snip off extreem beta and psi vales to maximize plotting area
 
@@ -563,24 +583,18 @@ wordLegend_P_B_plot
 
 ```
 
-### Final Beeps for All Done!
-```{r final_beeps, echo=TRUE}
-beep("coin");beep("coin")
-beep("complete")
-beep("mario")
-```
 
 
 
-
-
-
-
-
+# R MARKDOWN tutorial
+# & HELPFUL MARKDWON SYNTAX REFERENCE SECTION 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
-# HELPFUL MARKDWON SYNTAX REFERENCE SECTION 
 ### this is NOT for the final version - just leaving it in until we have the syntax down pat
-(random extra sample code and whatnot)
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
 
 `r 2+3`  
 `2+3`
@@ -618,53 +632,12 @@ text1
 text2  
 text3
 text3.5
-### R Markdown tutorial
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
-```
-
-Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
 
 
-# DON'T NEED THIS PROBABLY
-### Directory Paths
-I don't think we'll need this chunk.  Right now, it will be 'ignored' by the kint markdown report.
-```{r create_directories, echo=F, results='hide', eval=F}
-# Set Working Directory, get data (not currently needed, since data is scraped)  
-#@ also, in markdown, you have to reset the directory in each chunk, if /as necessesary
 
-input.dir <- "csv_Data/" #@ this folder contains .csv files of comment data (old skool)
-proj.dir <- "~/Box Sync/Consulting/DSC_Youtube/"
 
-#setwd(proj.dir)
-getwd()
-```
+# DON'T NEED THE FOLLOWNG CHUNKS, PROBABLY
 
-### Read-in data
-I don't think we'll need this chunk either.  
-```{r read_data, echo=F, results='hide', eval=F}
-#files.v <- dir(input.dir, "\\.csv$")   # old version used .tab$
-#head(files.v)
-
-#?stringi()
-#?head()
-
-#length(files.v)
-#files.v
-```
 
 ### @Extra code here - word clouds and wordscore trials
 ```{r extra_code, echo=FALSE, eval=FALSE}
