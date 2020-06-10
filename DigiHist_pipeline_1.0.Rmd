@@ -58,11 +58,11 @@ library(lubridate)
 
 #### Save Pairings of Subject and SearchTerms for an easy record of which terms produced which results!
 
-subject_s <- "COVID_and_Opening_America"  #@ what the project is about (this will appear in visualization titles and file names)
-SearchTerms <- c("reopening america", "reopen america", "#reopenamerica", "freeamericanow", "#freeamericanow")
+#subject_s <- "COVID_and_Opening_America"  #@ what the project is about (this will appear in visualization titles and file names)
+#SearchTerms <- c("reopening america", "reopen america", "#reopenamerica", "freeamericanow", "#freeamericanow")
 
-#subject_s <- "Floyd Chauvin and BLM"
-#SearchTerms <- c("george floyd", "derek chauvin", "black lives matter")
+subject_s <- "Floyd Chauvin and BLM"
+SearchTerms <- c("george floyd", "derek chauvin", "black lives matter")
 
 #subject_s <- "George Floyd"
 #SearchTerms <- c("George Floyd", "#Floyd", "#GeorgeFloyd")  #@ these are the keyword terms which will be used to identify videos
@@ -182,11 +182,12 @@ VideosWithEnoughComments <- unique(AllCommentsMetadata_aj$videoTitle)
 # Save your data
 write.csv(AllCommentsMetadata_aj, paste("Data/AllComments_", subject_s, ".csv", sep=""))
 ```
+
 # Read it back in (since youtube is unreliable, SAVE your data once acquired, so you can work with it later! Don't be me!)
 ```{r read_in_data}
 #data <- read.csv(paste("Data/AllComments_", subject_s, ".csv", sep=""))
-#data <- read.csv(paste("Data/AllCommentsMetadata 6 9 20", ".csv", sep=""))  # -- using sample dataset
-data <- read.csv(paste("Data/AllCommentsMetadata 5 29 20", ".csv", sep=""))  # -- using sample dataset
+data <- read.csv(paste("Data/AllCommentsMetadata 6 9 20", ".csv", sep=""))  # -- using sample dataset - BLM
+#data <- read.csv(paste("Data/AllCommentsMetadata 5 29 20", ".csv", sep=""))  # -- using sample dataset - COVID/Stay
 
 
 #View(data)
@@ -194,6 +195,8 @@ data <- read.csv(paste("Data/AllCommentsMetadata 5 29 20", ".csv", sep=""))  # -
 nrow(data)
 AllCommentsMetadata_aj <- data
 ```
+
+
 
 #TOKENIZE longer comments
 This creates list of tokenized comment vectors, used to make the corpus object below
@@ -209,13 +212,14 @@ for (com in 1:nrow(AllCommentsMetadata_aj)) {
   sto_list <- strsplit(sto, "\\W")
   sto_text <- unlist(sto_list)
   sto_rm <- sto_text[-which(sto_text == "")]; sto_text <- sto_rm
-  if(length (sto_text) >= 50 & length(unique(sto_text)) >=10 ) {   #@ comments with at least 8 words, 5 of which are unique
+  if(length (sto_text) >= 8 & length(unique(sto_text)) >=5) {   #@ comments with at least 8 words, 5 of which are unique
         #@ create list.head               
-    list.head <- paste(AllCommentsMetadata_aj$videoTitle[com],"%_%", AllCommentsMetadata_aj$commentId[com]) # unique comment names
+    list.head <- paste(AllCommentsMetadata_aj$videoTitle[com], "%_%", com,"%_%", AllCommentsMetadata_aj$commentId[com], sep="")
     comment_tokens_l[[list.head]] <- sto_text
   }}
 beep("coin")
-#comment_tokens_l[[1]]
+comment_ids <- names(comment_tokens_l)
+length(comment_tokens_l)
 ```
 
 ```{r how_many_comments_1}
@@ -225,15 +229,18 @@ print(paste("keeping",length(comment_tokens_l), "out of", nrow(AllCommentsMetada
 ### Making the Corpus
 ```{r data_reshape_for_WF, echo=FALSE, warning=FALSE, results='hide'}
 ####### Turn the list of comment files into a corpus data object
-####### this kind of analyisscan only be executed on a corpus object
-comment_corpus <- Corpus(VectorSource(comment_tokens_l))   #@ this function needs a list of tokenized char vectors
+####### this kind of analyiss can only be executed on a corpus object
 
-for(com in 1:length(comment_corpus)){   # the Corpus() command is mysteriously adding leading "c"s to comments, this removes them
+comment_corpus <- Corpus(VectorSource(comment_tokens_l))   #@ this function needs a list of tokenized char vectors
+comment_corpus <- tm_map(comment_corpus, removeNumbers)
+comment_corpus <- tm_map(comment_corpus, removePunctuation)
+
+for(com in 1:length(comment_corpus)){   
+          # remove the leading "c"s added when the corpus command concatonates tokens (maybe we can avoid this?)
   if(substr(comment_corpus[[com]]$content,1,1)=="c"){
     comment_corpus[[com]]$content<- substr(comment_corpus[[com]]$content, 2, nchar(comment_corpus[[com]]$content))}}
 
-comment_corpus <- tm_map(comment_corpus, removeNumbers)
-comment_corpus <- tm_map(comment_corpus, removePunctuation)
+
 
 my_stop <- c(stopwords("english"),
              "c","x", "s", "t", "m", "amp", "youtube", "www", "com", "quot", "br", "http", "https", "")
@@ -254,7 +261,7 @@ dtm   # old DTM has 56,732 terms, new has 52,297 - removed 4435 terms caused due
 ########################################
 ########## Set accepted sparsity parameter
 ########################################
-sparsity <- .999
+sparsity <- .9977
 dtma = removeSparseTerms(dtm, sparse = sparsity)
 #@ including too many very sparse (infrequent) terms negatively impacts results
 dtma
@@ -267,22 +274,23 @@ dtma
 ### I need to wrap this in a 'while' loop!!!
 problem_comments <- NA
 
-while(length(problem_comments) > 0 ) {  # WHILE any problem comments remain
+while(length(problem_comments) > 0 ) {  # WHILE any problem comments (may) remain - always do this once
   
 dtma_matrix <- as.matrix(dtma)
 
 problem_comments <- NA
-for(com in 1:nrow(dtma_matrix) ){
+for(com in 1:nrow(dtma_matrix) ){                 # Identify problem comments
   if(sum(dtma_matrix[com,]) < 6 ){
     #print(comment_corpus[[com]]["content"])
     problem_comments <- c(problem_comments, com)
   }}
 #print(problem_comments)
-problem_comments <- problem_comments[(-1)]; 
+problem_comments <- problem_comments[(-1)];       # Delete the leading NA - then, if no problem comments, this will be length 0
 
-if(length(problem_comments) > 0 ){
+if(length(problem_comments) > 0 ){                # Remove the problem comments and their corresponding titles
   print(paste("removing", length(problem_comments), "problem comments"))
-  comment_corpus <- comment_corpus[(-problem_comments)]   
+  comment_corpus <- comment_corpus[(-problem_comments)]  
+  comment_ids <- comment_ids[(-problem_comments)]
 } else {
     print("There don't appear to be any [more] comments with too few words")
   }
@@ -307,6 +315,8 @@ print(paste("Modeling",length(dtma$dimnames$Terms),"words from", length(dtma$dim
 possibly_fish <- possibly(wordfish, otherwise=NULL)
 wfa1 <- possibly_fish(as.wfm(dtma), dir=c(1, 2), control = list(tol = 3.0e-5), verbose = T)
 #wfa1 <- wordfish(as.wfm(dtma), dir=c(1, 2), control = list(tol = 3.0e-5), verbose = T)
+
+wfa1$docs <- comment_ids #@ This is the actual names (ids) of all of the good comments!
 str(wfa1)
 # beeps are useful to signify when long processes have completed
 beep("coin")
@@ -314,33 +324,18 @@ beep("complete")
 ```
 
 
-
-
-### Store data from WF model
+### Store data from WF model as independant objects (helpful for later manipulation)
 ```{r store_WF_model_data, echo=FALSE}
-#head(wfa1)
+wfdocs_v <- wfa1$docs
+theta <- wfa1$theta
+alpha <- wfa1$alpha
 
-# Explore Wordfish --------------------------------------------------------
-
-#@ these commands isolate the document-level data
-
-#wfa1$docs <- names(comment_list)  #@ I ACTUALLY need the 'names' of the final set of comments, after bad comments are removed
-
-
-wfdocs.v <- wfa1[["docs"]]
-theta <- wfa1[["theta"]]
-alpha <- wfa1[["alpha"]]
-
-#@ the [-1] indexing for these removes the empty strings ("") that are sometimes an artifact of this method
-#@ you SHOULD NOT need this
-(head(wfa1$words))
-
-wf.words.v <- wfa1[["words"]];    #wf.words.v <- wf.words.v[-1]
-beta <- wfa1[["beta"]];           #beta<-beta[-1]
-psi <- wfa1[["psi"]];             #psi <- psi [-1]
+wfwords_v <- wfa1$words
+beta <- wfa1$beta
+psi <- wfa1$psi
 ```
 
-### View some properties of the WF model
+### View some properties of the WF model (not necessary)
 ```{r view_WF_model_properties, echo=TRUE}
 sum(theta[which(theta>0)])
 sum(theta[which(theta<0)])
@@ -360,23 +355,25 @@ For simpler indexing, and also objects that can hold more metadata than the WF m
 ```{r make_WF_data_objects, echo=FALSE, results='hide'}
 
 #######################  NEED TO TWEAK THIS to just strip off the title (or ideally short title) before %_%
-title<-NA
-for (i in 1:length(wfdocs.v)){
-  sto<-NA
-  #sto <- substr(wfdocs.v[i],1,12 )
-  title[i] <- sto
+comment_identifiers<-NA
+for (com in 1:length(wfdocs_v)){
+split <- strsplit(wfdocs_v[com], "%_%")
+split <- unlist(split)
+comment_identifiers[com] <- split
 }
-View(head(title))
+View(head(comment_identifiers))
+
+
 
 
 
 ### CREATE DOC DATA DATAFRAME
-wf_docdata.df <- data.frame(wfdocs.v, title, theta, alpha)
+wf_docdata.df <- data.frame(wfdocs_v, title, theta, alpha)
 #View(wf_docdata.df)
 
 
 ### CREATE WORD DATA DATAFRAME
-wf_worddata.df <- data.frame(wf.words.v, beta, psi)
+wf_worddata.df <- data.frame(wfwords_v, beta, psi)
 #View(wf_worddata.df)
 
 ```
@@ -432,7 +429,7 @@ source_T_A_plot
 ```{r}
 ######################## FIRST PLOT of two word parameters: BETA against PSI, basic black and white
 #@***limiting by a critical max negitive psi value***
-word_P_B_plot <- ggplot(data = wf_worddata.df, mapping = aes(x = beta, y = psi, label = wf.words.v)) + 
+word_P_B_plot <- ggplot(data = wf_worddata.df, mapping = aes(x = beta, y = psi, label = wfwords_v)) + 
   geom_text(data=subset(wf_worddata.df, psi>-20), size = 0.755) + 
   labs(x = "Word polarity: an optimized value (beta)", y = "Word frequency: a fixed effect (psi)") +
   #guides(size = "none", color = guide_legend("")) + 
