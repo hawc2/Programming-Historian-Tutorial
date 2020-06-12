@@ -422,8 +422,8 @@ This is particularly useful / meaningful if you are modeling comments from ~6 or
 ```{r comments_by_shorttitle, echo=FALSE}
 
 #@ if you want to re-save visualizations with different parameters, you can change subject_s to be more specific of params
-subject_s <- "COVID_and_Opening_America_10 word min comments"  
-SearchTerms <- c("reopening america", "reopen america", "#reopenamerica", "freeamericanow", "#freeamericanow")
+#subject_s <- "COVID_and_Opening_America_10 word min comments"  
+#SearchTerms <- c("reopening america", "reopen america", "#reopenamerica", "freeamericanow", "#freeamericanow")
 
 
 
