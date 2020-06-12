@@ -1,5 +1,5 @@
 ##### This Config file will allow you to choose settings and parameters without needing to make any changes to the full pipeline. ###
-
+### Remember to COMMENT OUT any parameters you are NOT using!
 
 
 ### Insert YOUR Authenticator ID and Secret for the YouTube API (these are unique to each individual/account)
@@ -20,12 +20,18 @@
 Subject <- "Floyd Chauvin and BLM"
 Search <- c("george floyd", "derek chauvin", "black lives matter")
 
-# Another Tested Option:
+
+# Other Tested Options:
 #Subject <- "COVID_and_Opening_America"  #@ what the project is about (this will appear in visualization titles and file names)
 #Search <- c("reopening america", "reopen america", "#reopenamerica", "freeamericanow", "#freeamericanow")
+#Subject <- "Man Yoga"
+#Search <- c("#yogaformen", "#mensyoga")
+#Subject <- c("Last Week Tonight")
+#Search <- c("Last Week Tonight with John Oliver", "Last Week Tonight", "John Oliver")
+
 
 # Enter your choices below:
-#Subject <- "COVID_and_Opening_America"  # Single string
+#Subject <- "Your Subject Here"  # Single string
 #Search <- c("YOUR", "CHOICES", "HERE")  # Vector of strings
 
 
@@ -36,6 +42,10 @@ Search <- c("george floyd", "derek chauvin", "black lives matter")
 BeforeDate <- "2020-06-08T00:00:00Z"   # scrape videos posted before: June 8, 2020
 AfterDate <- "2020-05-25T00:00:00Z"    # scrape videos posted after:  May 25, 2020
 
+# Other used options
+#BeforeDate <- "2020-06-12T00:00:00Z"   # scrape videos posted before: 
+#AfterDate <-  "2020-03-06T00:00:00Z"    # scrape videos posted after:  
+
 # Enter your choices below:
 #BeforeDate <- "20YY-MM-DDT00:00:00Z"   # scrape videos posted before: MM DD, 20YY
 #AfterDate <- "20YY-MM-DDT00:00:00Z"    # scrape videos posted after:  MM DD, 20YY
@@ -43,7 +53,7 @@ AfterDate <- "2020-05-25T00:00:00Z"    # scrape videos posted after:  May 25, 20
 ### Do you want to keep only the N videos with the most comments?
 
 # Default:
-top_N_videos <- c(TRUE, 5)
+top_N_videos <- c(TRUE, 9)
 # Enter your choices below:
 # top_N_videos <- c(PICK BOOLEAN VAL, PICK N)
 
