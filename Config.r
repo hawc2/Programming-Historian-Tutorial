@@ -17,15 +17,18 @@
 ### Identify the SUBJECT of the videos you are looking to scrape comments for, and
 ### Identify which SEARCH term(s) you would like to use, to identify videos for that subject
 # Default:
-Subject <- "Floyd Chauvin and BLM"
-Search <- c("george floyd", "derek chauvin", "black lives matter")
+#Subject <- "Floyd Chauvin and BLM"
+#Search <- c("george floyd", "derek chauvin", "black lives matter")
+
 
 
 # Other Tested Options:
+#Subject <- "MAGA"
+#Search <- c("MAGA", "#maga")
 #Subject <- "COVID_and_Opening_America"  #@ what the project is about (this will appear in visualization titles and file names)
 #Search <- c("reopening america", "reopen america", "#reopenamerica", "freeamericanow", "#freeamericanow")
-#Subject <- "Man Yoga"
-#Search <- c("#yogaformen", "#mensyoga")
+Subject <- "Man Yoga"
+Search <- c("#yogaformen", "#mensyoga")
 #Subject <- c("Last Week Tonight")
 #Search <- c("Last Week Tonight with John Oliver", "Last Week Tonight", "John Oliver")
 
@@ -39,10 +42,13 @@ Search <- c("george floyd", "derek chauvin", "black lives matter")
 ### It is particularly important to set this range if you are studying a current event
 
 # Default (note - you must submit dates in this format!):
-BeforeDate <- "2020-06-08T00:00:00Z"   # scrape videos posted before: June 8, 2020
-AfterDate <- "2020-05-25T00:00:00Z"    # scrape videos posted after:  May 25, 2020
+BeforeDate <- "2020-06-13T00:00:00Z"   # scrape videos posted before: June 13, 2020
+AfterDate <- "2020-05-14T00:00:00Z"    # scrape videos posted after:  May 14, 2020
 
 # Other used options
+#BeforeDate <- "2020-06-08T00:00:00Z"   # scrape videos posted before: June 8, 2020
+#AfterDate <- "2020-05-25T00:00:00Z"    # scrape videos posted after:  May 25, 2020
+
 #BeforeDate <- "2020-06-12T00:00:00Z"   # scrape videos posted before: 
 #AfterDate <-  "2020-03-06T00:00:00Z"    # scrape videos posted after:  
 
@@ -53,7 +59,7 @@ AfterDate <- "2020-05-25T00:00:00Z"    # scrape videos posted after:  May 25, 20
 ### Do you want to keep only the N videos with the most comments?
 
 # Default:
-top_N_videos <- c(TRUE, 9)
+top_N_videos <- c(TRUE, 12)
 # Enter your choices below:
 # top_N_videos <- c(PICK BOOLEAN VAL, PICK N)
 

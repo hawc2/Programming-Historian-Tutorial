@@ -1,7 +1,7 @@
 ---
 title: "FULL PIPE!! Programming Historian on YouTube Comments in Wordfish"
 author: "Jeff Antsen, Nicole Lemire Garlic, Alex Wermer-Colan"
-date: "6/11/2020"
+date: "6/13/2020"
 output:
   html_document: default
   pdf_document: default
@@ -127,16 +127,18 @@ IF YOU ARE USING YOUR OWN VIDEO LIST, skip to the end of this chunk and create y
 This chunk gets all available video comments from API, and converts to a dataframe. It uses `r possibly()` to avoid error messages for unavailable videos comments.
 
 ```{r scrape_available_comments, warning=F}
+# video_list <-c("MAKE", "YOUR", "OWN")
 get_avlbl_comments <- possibly(get_all_comments, otherwise = NULL)
 AllComments <- map(video_list, get_avlbl_comments)
 AllCommentsDF <- do.call(smartbind, lapply(AllComments, data.frame))  # this works but returns a BUNCH of warnings
+View(AllComments[[3]])
 #View(AllCommentsDF)
 
-nrow(AllCommentsDF)
-if(any(duplicated(AllCommentsDF$id))==T){
-  print(paste("You have", length(which(duplicated(AllCommentsDF$id)==TRUE)) ,"duplicate comments! Removing them now."))
-  AllCommentsDF <- AllCommentsDF %>% distinct(id, .keep_all = FALSE)
-}
+#nrow(AllCommentsDF)
+#if(any(duplicated(AllCommentsDF$id))==T){
+#  print(paste("You have", length(which(duplicated(AllCommentsDF$id)==TRUE)) ,"duplicate comments! Removing them now."))
+#  AllCommentsDF <- AllCommentsDF %>% distinct(id, .keep_all = TRUE)
+#}
 nrow(AllCommentsDF)
 
 AllCommentsVideos <- unique(AllCommentsDF$videoId)  #stores which video comments were scraped 
@@ -152,6 +154,7 @@ print(paste("You have identified", nrow(AllCommentsDF), "comments from", length(
 ### Merge Metadata (includes video titles) from Search Results
 ```{r join_metadata}
 #joins video metadata to comments and renames columns for clarity
+
 AllCommentsMetadata <- inner_join(AllCommentsDF, SearchResultsDF, by = c("videoId" = "video_id"))
 AllCommentsMetadata <- rename(AllCommentsMetadata, c(commentPublishedAt = publishedAt.x, 
                                                      commentUpdatedAt = updatedAt,
@@ -167,7 +170,7 @@ AllCommentsMetadata <- rename(AllCommentsMetadata, c(commentPublishedAt = publis
 ### Recommended -- Save Your Data
 ```{r output_comments, eval=F, echo=F}
 # Save your data
-write.csv(AllCommentsMetadata, paste("Data/AllComments_", subject_s, today("EST"),".csv", sep=""))
+write.csv(AllCommentsMetadata, paste("Data/AllComments__", subject_s, today("EST"),".csv", sep=""))
 ```
 
 ### And, read data back in here (only if you need to!)
@@ -178,9 +181,9 @@ write.csv(AllCommentsMetadata, paste("Data/AllComments_", subject_s, today("EST"
 #yourdata <- read.csv("Data/AllComments_floyd.csv")            # - medium BLM dataset 
 #yourdata <- read.csv("Data/AllCommentsMetadata 5 29 20.csv")  # - big COVID / stay at home dataset
 #View(yourdata)  #@ if not using data scraped with this tool, you may need to do reformatting (changing col names, etc)
-nrow(yourdata)
 
-AllCommentsMetadata <- yourdata
+#nrow(yourdata)
+#AllCommentsMetadata <- yourdata
 ```
 
 # 3: DATA CLEANING
@@ -407,7 +410,7 @@ wf_docdata.df <- data.frame(theta, alpha, comment_identifiers, wfdocs_v)
 wf_worddata.df <- data.frame(wfwords_v, beta, psi)
 #View(wf_worddata.df)
 
-weird_words <- wf_worddata.df$wfwords_v[which((wf_worddata.df$psi < -9))]  # views extremely rare words that were kept
+#weird_words <- wf_worddata.df$wfwords_v[which((wf_worddata.df$psi < -7))]  # views extremely rare words that were kept
 #weird_words
 
 #weird_comments <- wf_docdata.df$comment_number[which((wf_docdata.df$alpha < -3))]# views weird comments that were kept
@@ -422,17 +425,18 @@ This is particularly useful / meaningful if you are modeling comments from ~6 or
 ```{r comments_by_shorttitle, echo=FALSE}
 
 #@ if you want to re-save visualizations with different parameters, you can change subject_s to be more specific of params
-#subject_s <- "COVID_and_Opening_America_10 word min comments"  
+#original_subject <- subject_s
+#subject_s <- paste(subject_s, "_updated N word min comments")
 #SearchTerms <- c("reopening america", "reopen america", "#reopenamerica", "freeamericanow", "#freeamericanow")
 
 
 
 short_title_T_A_plot <- ggplot(data = wf_docdata.df, 
-                                   mapping = aes(x =theta, y = alpha, label = comment_number, color=short_title)) + 
-  geom_text(size = 1.2) + 
+                                   mapping = aes(x =theta, y = alpha, label = comment_number, color=short_title))+
+  geom_text(size = .8) + 
   labs(x = "Comment polarity: an optimized value (theta)", y = "Comment length: a fixed effect (alpha)") +
   guides(size = "none", color = guide_legend("")) + theme(legend.position="bottom") + 
-  theme(legend.text = element_text(size=5)) +
+  theme(legend.text = element_text(size=4)) +
   labs(title = paste("Polarity of ", subject_s, "comments on YouTube, colorized by Video"),
                       subtitle= paste("identified using the tags:", paste(SearchTerms, collapse=" "))) 
 short_title_T_A_plot 
@@ -442,11 +446,10 @@ ggsave(paste("Visualizations/",subject_s, "__shorttitle_T_A_plot", today("EST"),
 
 ### Comment (doc) polarity, color by video
 ```{r another_comment_plot2, eval=F, echo=F}
-channel_T_A_plot <- ggplot(data = wf_docdata.df, mapping = aes(x =theta, y = alpha, label = comment_number, color=video_channel)) + 
-  geom_text(size = 1.2) + 
+channel_T_A_plot <- ggplot(data = wf_docdata.df, mapping = aes(x =theta, y = alpha, label = comment_number, color=video_channel))+ geom_text(size = .8) + 
   labs(x = "Comment polarity: an optimized value (theta)", y = "Comment length: a fixed effect (alpha)") +
   guides(size = "none", color = guide_legend("")) + theme(legend.position="bottom") + 
-  theme(legend.text = element_text(size=5)) +
+  theme(legend.text = element_text(size=4)) +
   labs(title = paste("Polarity of ", subject_s, "comments on YouTube, colorized by Video Channel"),
                       subtitle= paste("identified using the tags:", paste(SearchTerms, collapse=" "))) 
 channel_T_A_plot
