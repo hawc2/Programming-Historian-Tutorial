@@ -65,7 +65,7 @@ top_N_videos <- c(TRUE, 12)
 
 ### Do you want to keep only videos with at least M comments?
 #Default:
-atleast_M_comments <- c(TRUE, 50)
+atleast_M_comments <- c(TRUE, 20)
 # Enter your choices below:
 # atleast_M_comments <- c(PICK BOOLEAN VAL, PICK M)
 

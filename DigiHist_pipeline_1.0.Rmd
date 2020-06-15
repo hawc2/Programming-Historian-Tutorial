@@ -18,7 +18,7 @@ knitr::opts_chunk$set(eval=TRUE)
 ```
 
 ### Install Packages 
-```{r install_packages, eval=F}
+```{r install_packages, eval=FALSE}
 # Install Packages and Library Calls
 #install.packages("knitr")
 #install.packages("NLP")
@@ -35,7 +35,7 @@ knitr::opts_chunk$set(eval=TRUE)
 ```
 
 ### Call Libraries
-```{r call_libraries, echo=F, results='hide'}
+```{r call_libraries, echo=FALSE, results='hide'}
 # CLEANUP your workspace (before running / rerunning code)
 ##       __   
 rm(list=ls())
@@ -57,7 +57,7 @@ library(lubridate)
 
 ### Authorize your API account
 Remember to push 1 for 'yes; in the CONSOLE! And then log into your gmail/google account.
-```{r authorize, echo=T, results='hide'}
+```{r authorize, echo=TRUE, results='hide'}
 #Saving the client ID and client secret for subsequent use by the tuber package
 #the first time you authorize your credentials, at prompt choose "1: Yes IN THE CONSOLE!"
 #this creates your personal .httr-oauth file - you only need to do this once, as long as you don't delete that file!
@@ -76,7 +76,7 @@ yt_oauth(app_id, app_secret)    #@ do we need to update or specify permissions f
 
 ### Read In Parameters / Tolerances from the Config file
 ~~ Can add additional parameters to the Config file
-```{r Parameters_and_Tolerances_From_Config, echo=F, results='hide'}
+```{r Parameters_and_Tolerances_From_Config, echo=FALSE, results='hide'}
 ### NOTE - we do NOT need to re-assign any of these values from the config file(s)
 ### However, for the purpose of clarity, I don't think it's necessarily the wrong call to do so.
 
@@ -126,7 +126,7 @@ IF YOU ARE USING YOUR OWN VIDEO LIST, skip to the end of this chunk and create y
 ### Scrape available comments on each of those videos
 This chunk gets all available video comments from API, and converts to a dataframe. It uses `r possibly()` to avoid error messages for unavailable videos comments.
 
-```{r scrape_available_comments, warning=F}
+```{r scrape_available_comments, warning=FALSE}
 # video_list <-c("MAKE", "YOUR", "OWN")
 get_avlbl_comments <- possibly(get_all_comments, otherwise = NULL)
 AllComments <- map(video_list, get_avlbl_comments)
@@ -168,7 +168,7 @@ AllCommentsMetadata <- rename(AllCommentsMetadata, c(commentPublishedAt = publis
 
 # 2: SAVE and READ DATA
 ### Recommended -- Save Your Data
-```{r output_comments, eval=F, echo=F}
+```{r output_comments, eval=FALSE, echo=FALSE}
 # Save your data
 write.csv(AllCommentsMetadata, paste("Data/AllComments__", subject_s, today("EST"),".csv", sep=""))
 ```
@@ -217,7 +217,7 @@ nrow(AllCommentsMetadata)
 
 ###tokenize those longer comments
 This creates list of tokenized comment vectors, used to make the corpus object below
-```{r tokenize_elaborate_comments, echo=F, results='hide'}
+```{r tokenize_elaborate_comments, echo=FALSE, results='hide'}
 
 comment_tokens_l <- list()
 
@@ -336,6 +336,7 @@ wfa1 <- possibly_fish(as.wfm(dtma), dir=c(1, 2), control = list(tol = 3.0e-5), v
 #wfa1 <- wordfish(as.wfm(dtma), dir=c(1, 2), control = list(tol = 3.0e-5), verbose = T)
 
 wfa1$docs <- comment_ids #@ This is the actual names (ids) of all of the good comments!
+str(wfa1)
 # beeps are useful to signify when long processes have completed
 beep("coin")
 ```
