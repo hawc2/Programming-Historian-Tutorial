@@ -51,123 +51,58 @@ library(lubridate)
 
 ### Set Parameters / Tolerances
 ```{r Parameters_and_Tolerances, echo=F, results='hide'}
-# CLEANUP your workspace
-##                     __       rm(list=ls())
-
-subject_s <- "COVID"  #@ what the project is about (this will appear in visualization titles and file names)
+subject_s <- "COVID"  #@ what the project is about
 SearchTerms <- c("reopening america", "reopen america", "#reopenamerica", "freeamericanow")
 #@ these are the keyword terms which will be used to identify videos
-
-
-# (other video parameters?)
-
-# How many characters do you want your comments to be at minimum, initially?
-
-# How many tokens (minimum) do you want your final comments to have post-stopwords and sparsity?
-
-# Other relevant up-front parameters?
-
 ```
 
 # DATA and Directories
 ```{r create_directories, echo=F, results='hide'}
-# Set Working Directory, get data (not currently needed, since data is scraped)  
-#@ also, in markdown, you have to reset the directory in each chunk, if /as necessesary
-
-input.dir <- "csv_Data/" #@ this folder contains .csv files of comment data (old skool)
-proj.dir <- "~/Box Sync/Consulting/DSC_Youtube/"
-
+input.dir <- "Data/"
+proj.dir <- "C:/Users/alwer/Documents/GitHub/Programming-Historian-Tutorial"
 setwd(proj.dir)
 getwd()
 ```
 
-### chunk to read-in data
-Do we want to keep this in?  Right now, it will be 'ignored' by the kint markdown report
-```{r read_data, echo=F, results='hide'}
-#files.v <- dir(input.dir, "\\.csv$")   # old version used .tab$
-#head(files.v)
-
-#?stringi()
-#?head()
-
-#length(files.v)
-#files.v
-
-###### test read in the article subset
-#test.csv.df <- read.csv(paste(data.dir, input.dir, files.v[1], sep="/"), quote = "", stringsAsFactors=FALSE)
-#View(head(test.tab.df))
-#nrow(test.csv.df)
-```
-
-
-# Code BEGINS here Proper
 ### Create(scrape) comment data object
 ```{r scrape_comments, echo=T, results='hide'}
-
-#saving the client ID and client secret for subsequent use by the tuber package
+#saving the client ID and client secret for tuber package
 #at prompt choose "1: Yes"
 source("Config.R")
-
 app_id <- API_ID
 app_secret <- API_Secret
 yt_oauth(app_id, app_secret)
 
-
 #type in list of videos IDS
 video_list <- c("mM45rpHMZD4", "WsUBnOv70Mw", "qzrw8-TZN_A", "KxtGJsnLgSc", "aPLEJKluMgU")
 
-#testing API
 #get_all_comments(video_id = video_list[1])
 stats <- get_stats("mM45rpHMZD4")
-View(stats)
-
-
-######## NEW MAPS for collecting comments
 get_avlbl_comments <- possibly(get_all_comments, otherwise = NULL)
-#?possibly()
 AllComments <- map(video_list, get_avlbl_comments)
 
-#reduce possibly output (which is a list) to a dataframe, if you prefer (and we do for this code)
-AllComments_df <- AllComments %>% reduce(full_join)
-
-
-#safely
-#get_comments_safely <- safely(get_all_comments, otherwise = NULL)
-#AllCommentswErrors <- map(video_list, get_comments_safely)
-
+#reduce possibly output (which is a list) to a dataframe
+AllCommentsdf <- AllComments %>% reduce(full_join)
 
 ### piping in data from the other script
-#AllComments_df <- AllCommentsMetadata_aj
+#AllComments_df <- AllCommentsMetadata_aj (THROWS ERROR)
 
-```
-
-```{r see_which_comments, echo=T}
 #displays which videos were scraped
-AllCommentsVideos <- unique(AllComments_df$videoId)
+AllCommentsVideos <- unique(AllCommentsdf$videoId)
 AllCommentsVideos
 
-
-```
-
-
-```{r output_comments, eval=F, echo=F}
 #output comments
 write.csv(AllComments_df, paste("AllComments_", subject_s, ".csv", sep=""))
 ```
 
-
-
-
 #Tokenize 'elaborate' (long + multi-type) comments
 ```{r tokenize_elaborate_comments, echo=F, results='hide'}
-
-###################### This creates list of tokenized comment vectors, used to make the corpus object below
+#Creates list of tokenized comment vectors, used to make corpus object
 comment_tokens_l <- list()
 
 for (com in 1:nrow(AllComments_df)) {
   sto <- NA
   sto <- AllComments_df$textOriginal[com]
-  
   #@ preprocess sto  
   sto.list <- list()
   sto <- tolower(sto)
@@ -184,81 +119,44 @@ for (com in 1:nrow(AllComments_df)) {
   }}
 print(paste("keeping",length(comment_tokens_l), "out of", nrow(AllComments_df),"comments"))
 
-
-#View(comment_tokens_l)
-#View(AllComments_df)
-
 list_names <- names(comment_tokens_l)
-
-#head(list.names)
-#View(list.data)
 ```
 
 ### Get Ready to Wordfish!
 ```{r data_reshape_for_WF, echo=FALSE, warning=FALSE, results='hide'}
-##
-
-
-  # "\n" for newline separator. This may or may not be needed depeing on your data
-  # May try with or without the "sep" argument, or try feeding into "sep" other kinds of seperator
-
-
 ####### Turn the list of comment files into a corpus data object
-####### this kind of analyisscan only be executed on a corpus object
-comment_corpus <- Corpus(VectorSource(comment_tokens_l))   #@ this function needs a list of tokenized char vectors
+comment_corpus <- Corpus(VectorSource(comment_tokens_l)) 
 
-#str(comment_corpus)
-#comment_corpus[["1"]][["content"]]   # it can be good to try to visualize different aspects of your data objects
-
+#Clean corpus
 comment_corpus <- tm_map(comment_corpus, removeNumbers)
 comment_corpus <- tm_map(comment_corpus, removePunctuation)
-#?tm_map()
 
-#my.stop <- stopwords("english")
+#Remove stop words
 my_stop <- c(stopwords("english"),
              "c","x", "s", "t", "m", "amp", "youtube", "www", "com", "quot", "br", "http", "https", "")
-
 comment_corpus <- tm_map(comment_corpus, removeWords, my_stop)
-beep("coin")
 
-
-#!!!The DocumentTermMatrix
+#DocumentTermMatrix
 dtm = DocumentTermMatrix(comment_corpus)
-#dtm
-
-#?DocumentTermMatrix()
 ```
 
 
 ### Control Sparseness and Run the Wordfish model
 ```{r WF_model, echo=TRUE, results='hide'}
-########################################
-########## Set accepted sparsity parameter
-########################################
+##Set accepted sparsity parameter
 dtma = removeSparseTerms(dtm, sparse = .998)
-#@ including too many very sparse (infrequent) terms negatively impacts results
-beep("coin")
-#str(dtma)
+
 print(paste("using",length(dtma$dimnames$Terms),"words from", 
             length(dtma$dimnames$Docs), "of", nrow(AllComments_df), "comments... trying to WF!"))
 
 
-########################################
-####### Running a wordfish model
-########################################
+# Running a wordfish model
 wfa1 <- wordfish(as.wfm(dtma), dir=c(1, 2), control = list(tol = 3.0e-5), verbose = T)
-# beeps are useful to signify when long processes have completed
-beep("coin")
-beep("complete")
 ```
 
 ### Store data from WF model
 ```{r store_WF_model_data, echo=FALSE}
-#head(wfa1)
-
-# Explore Wordfish --------------------------------------------------------
-
-#@ these commands isolate the document-level data
+# Explore Wordfish 
 wfa1$docs <- names(comment_tokens_l)
 wfdocs.v <- names(comment_tokens_l)
 
@@ -292,11 +190,8 @@ hist(psi, breaks=50)    # fixed effect for term (aka ~type~) frequency
 
 ### Make Composite Data Objects
 ```{r make_WF_data_objects, echo=FALSE, results='hide'}
-######################### Make Composite data objects
-#View(wfdocs.v)
+#Make Composite data objects
 
-#######################  SOURCE is the news surce the article comes from  +++ need to 'keep' title somehow
-# length(wfdocs.v)
 source <- NA
 for (i in 1:length(wfdocs.v)){
   sto<-NA
@@ -306,35 +201,23 @@ for (i in 1:length(wfdocs.v)){
   sto <- gsub("[:.:]","",sto)
   source[i] <- sto
 }
-#View(head(source))
-
-
-#######################  TITLE is the title with metadata stripped out - find something relevant
+##  TITLE is the title with metadata stripped out 
 title<-NA
 for (i in 1:length(wfdocs.v)){
   sto<-NA
   sto <- substr(wfdocs.v[i],1,12 )
   title[i] <- sto
 }
-#View(head(title))
-
-
 
 ### CREATE DOC DATA DATAFRAME
 wf_docdata.df <- data.frame(wfdocs.v, source, title, theta, alpha)
-#View(wf_docdata.df)
-
 
 ### CREATE WORD DATA DATAFRAME
 wf_worddata.df <- data.frame(wf.words.v, beta, psi)
-#View(wf_worddata.df)
-
 ```
 
 ### Visualizations Directory
 ```{r save_vis_in_directory, echo=FALSE, eval=FALSE}
-##### move working directory to the 'visualizations' repository   #@ eval=F; ignoring this chunk for now
-
 ### create and set a visualization directory
 vis.dir <- "/Visualizations/"
 dir.create("Visualizations")
@@ -351,13 +234,11 @@ getwd()
 
 ### Initial Visualizations
 ```{r initial_visualizations, echo=FALSE}
-
-
-############ Plot the two estimated document parameters: THETA against ALPHA, incl. METADATA #########
+## Plot the two estimated document parameters: THETA against ALPHA, 
 #@ Alpha = document fixed effect (control for length)
 #@ Theta = document "polarity" - alignment along as-identified latent principle component
 
-###### Label by USER color by CLIQUE     can include color=source in aes
+###### Label by USER color by CLIQUE can include color=source in aes
 user_T_A_plot <- ggplot(data = wf_docdata.df, mapping = aes(x =theta, y = alpha, label = title)) + 
   geom_text(size = 1.2) + 
   labs(x = "Comment polarity: an optimized value (theta)", y = "Comment length: a fixed effect (alpha)") +
@@ -369,21 +250,6 @@ user_T_A_plot
 
 ggsave(paste(subject_s, "SUBSET_user_T_A_plot.pdf",sep=""), device="pdf")
 
-
-
-###### Color by SOURCE  (this does not currently work)
-#source_T_A_plot <- ggplot(data = wf_docdata.df, mapping = aes(x =theta, y = alpha, label = title, color=source))+ 
-#  geom_text(size = .7) + 
-#  labs(x = "Doc polarity: an optimized value (theta)", y = "Doc length: a fixed effect (alpha)") +
-#  guides(size = "none", color = guide_legend("")) + theme(legend.position="bottom") +
-#  labs(title = paste (subject_s, 
-#                      " comments from ABC YouTube Videos:\n Article IDs plotted, shaded by comment thread source", #sep="")) 
-##     __ 
-#source_T_A_plot
-#ggsave(paste(subject_s, "SUBSET_source_T_A_plot.pdf",sep=""), device="pdf")
-
-
-
 ###### COLORLESS
 source_T_A_plot <- ggplot(data = wf_docdata.df, mapping = aes(x =theta, y = alpha, label = title)) + 
   geom_text(size = 1) + 
@@ -394,10 +260,9 @@ source_T_A_plot <- ggplot(data = wf_docdata.df, mapping = aes(x =theta, y = alph
 ##     __ 
 source_T_A_plot
 
-#ggsave(paste(subject_s, "SUBSET_colorless_T_A_plot.pdf",sep=""), device="pdf")
+#ggsave(paste(subject.s, "SUBSET_colorless_T_A_plot.pdf",sep=""), device="pdf")
 
-
-######################## FIRST PLOT of two word parameters: BETA against PSI, basic black and white
+###FIRST PLOT of two word parameters: BETA against PSI, basic black and white
 #@***limiting by a critical max negitive psi value***
 word_P_B_plot <- ggplot(data = wf_worddata.df, mapping = aes(x = beta, y = psi, label = wf.words.v)) + 
   geom_text(data=subset(wf_worddata.df, psi>-20), size = 0.755) + 
@@ -406,7 +271,7 @@ word_P_B_plot <- ggplot(data = wf_worddata.df, mapping = aes(x = beta, y = psi, 
   labs(title = "Vocabulary Polarity in comment network cliques of one thread scraped from YouTube", 
        subtitle="'CNN reporter presses Trump: You promised Mexico would pay for wall'")
 ######           __
-word_P_B_plot
+#word_P_B_plot
 getwd()
 
 ggsave(paste(subject_s, "Word_P_B_plot.pdf",sep=""), device="pdf")
@@ -415,12 +280,6 @@ ggsave(paste(subject_s, "Word_P_B_plot.pdf",sep=""), device="pdf")
 
 ### Colorizing Key Words
 ```{r give_keywords_color, echo=FALSE}
-######################## SO optimized!!
-#wf_worddata.df_unreduced <- wf_worddata.df
-## RESET wf_worddata.df if/when needed     __ wf_worddata.df <- data.frame(word, beta, psi)
-
-######+++++++++++++++++++++++++++++++++++++++++++ Set which KEY TERMS should have BIG FONT
-    
 neutral <- "neutral"  # Grey
 topA <- "Of Interest"      # Red
 topB <- "Wall"      # 
@@ -434,7 +293,6 @@ topH <- "Jobs"     #
 
 wf_worddata.df$key <- neutral  ### SET / RESET default font SIZE/COLOR and word coding
 
-
 ktA <- c("trump", "animal", "animals", "obama", "illegal", "mexico", "mexican", "caravan", 
          "jew", "jews", "jewish", "security", "secure", "national", "nation")
 for(k in 1:length(ktA)){
@@ -443,7 +301,6 @@ for(k in 1:length(ktA)){
   #print(sto)
   wf_worddata.df$key[sto] <-topA }   ### NEW FONT SIZE
 #View(wf_worddata.df[which(wf_worddata.df$key==topA),])
-
 
 ktB <- c("wall", "build", "steel", "concrete", "border", "dig", "tunnels", "bars", "invisible", "see")
 for(k in 1:length(ktB)){
@@ -500,16 +357,7 @@ for(k in 1:length(ktH)){
 
 ### Final Colorized-by-words plot
 ```{r word_color_vis, echo=FALSE, warning=FALSE}
-
 #+++++++++++++++  use this step to snip off extreem beta and psi vales to maximize plotting area
-
-#lowpsi <- which(wf_worddata.df$psi <= (-9.9))
-#lowbeta <- which(wf_worddata.df$beta <= (-4.4))
-#wf_worddata.df <- wf_worddata.df[(-lowpsi), ]
-#wf_worddata.df <- wf_worddata.df[(-lowbeta), ]
-
-#which(wf_worddata.df$psi <= (-13))    ## check your work!
-
 wordLegend_P_B_plot <- ggplot(data = wf_worddata.df, mapping = aes(x = beta, y = psi, label = word, color=key)) + 
   ylim(-11,.2)+ xlim(-5,6) +       #tight limits
   #ylim(-14,.2)+ xlim(-7,8) +     #more expanded limits
@@ -522,182 +370,5 @@ wordLegend_P_B_plot <- ggplot(data = wf_worddata.df, mapping = aes(x = beta, y =
   labs(title = "Vocabulary Polarity in comment network cliques of one thread scraped from YouTube", 
        subtitle="'CNN reporter presses Trump: You promised Mexico would pay for wall'\n key terms bolded")
 
-######           __
-wordLegend_P_B_plot
-
-#ggsave(paste(subject_s, "_QQQQ_SUBSET_wordLegend_P_B_plot.pdf",sep=""), device="pdf")
-
-
-
+#wordLegend_P_B_plot
 ```
-
-### Final Beeps for All Done!
-```{r final_beeps, echo=TRUE}
-beep("coin");beep("coin")
-beep("complete")
-beep("mario")
-```
-
-### @Extra code here - word clouds and wordscore trials
-```{r extra_code, echo=FALSE, eval=FALSE}
-#
-#
-#
-############### Trying out Wordclouds....?
-############### Trying out Wordclouds....?
-############### Trying out Wordclouds....?
-
-#@ WC separate articles by 
-
-
-###### Wordcloud!
-cloud.dtm <- TermDocumentMatrix(news.corpus)
-cloud.m <- as.matrix(cloud.dtm)
-cloud.v <- sort(rowSums(cloud.m),decreasing=TRUE)
-cloud.df <- data.frame(word = names(cloud.v),freq=cloud.v, stringsAsFactors = F)
-cloud.df <- cloud.df[-1,]
-View(head(cloud.df, 10))
-
-### remove " " and , from words
-clean.cloud.df <- cloud.df
-cloud.df[5,]
-word<-NA
-for (i in 1:nrow(cloud.df)){
-  sto<-NA
-  #sto <- gsub("\\W", "", cloud.df[i,1])  # this approach isn't working
-  sto <- cloud.df[i,1]
-  sto <- substr(sto,2,(nchar(sto)-2))
-  clean.cloud.df[i,1] <- sto
-}
-View(head(clean.cloud.df, 10))
-
-
-
-set.seed(1234)
-wordcloud(words = clean.cloud.df$word, freq = clean.cloud.df$freq, min.freq = 1,
-          max.words=99, random.order=FALSE, rot.per=0.35, 
-          colors=brewer.pal(8, "Dark2"))
-
-
-findAssocs(cloud.dtm, terms = "dadt", corlimit = 0.3)  ## doesn't work, presumably b/c of quotes and '/', ',' issues
-
-cloud.dtm
-head(cloud.m)
-
-############### Trying out Wordclouds....?
-############### Trying out Wordclouds....?
-############### Trying out Wordclouds....?
-#
-#
-#
-#
-#
-
-
-
-############### Trying out Wordscores++++++++++++++++++++++++++++++ SKIP WORDSCORE BIT FOR NOW!
-############### Trying out Wordscores
-############### Trying out Wordscores
-############### Trying out Wordscores
-
-
-
-#install.packages("quanteda")
-require(quanteda)
-#install.packages("quanteda.corpora")
-#require(quanteda.corpora)
-
-files.v[c(4,47)]
-ref <- c(1,47) # reference texts
-vir <- 1:length(files.v) # SPS 2011 (short) is empty, thus not included
-vir <- vir[-ref] # everything minus the reference texts
-ref; vir
-
-#?getdocs()
-#?wfm()
-str(corpus)
-news.as.corpus<- corpus(news.corpus)
-str(news.as.corpus)
-r <- getdocs(news.as.corpus, ref)
-
-
-#?classic.wordscores()
-ws <- classic.wordscores(r, scores=c(0,1.4))
-
-
-
-################
-############### Trying out Wordscores
-############### Trying out Wordscores
-############### Trying out Wordscores
-############### Trying out Wordscores+++++++++++++++++++++++++++++++++++++++++ END WORDSCORE
-#
-#
-
-```
-
-
-
-
-
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-# START META  
-(random extra sample code and whatnot)
-
-`r 2+3`  
-`2+3`
-
-$A = pi*r^2$  
-$$V = 1/3(pi*r^3)$$
-
-```{r echo=TRUE}
-# you NEED {r}!
-## moar code
-moar <- "moar code here"
-print(moar)
-vec <- c(1,2,3,4,5)
-str.vec <- c("a", "b", "c")
-```
-
-```{r, echo=FALSE}
-#doesn't work without {r}
-#moar code
-moarr <- "moar code again"
-print(moarr)
-```
-
-### examples
-
-`r moarr`  
-```{r, collapse=FALSE, echo=TRUE, eval=FALSE}
-print("this is a string")
-```
-`vec`  
-`r c(vec, str.vec)`  
-`r mean(c(1,2,3,4,5))`
-
-text1  
-text2  
-text3
-text3.5
-### R Markdown tutorial
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
-```
-
-Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
-
