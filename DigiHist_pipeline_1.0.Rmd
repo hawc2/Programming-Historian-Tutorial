@@ -63,7 +63,7 @@ Remember to push 1 for 'yes; in the CONSOLE! And then log into your gmail/google
 #this creates your personal .httr-oauth file - you only need to do this once, as long as you don't delete that file!
 
 source("Config.R") # This contains all the othe user-given config info, plus has a space to enter credentails too.
-source("~/Desktop/tuber_credential_holder.R")   # Make this file on your desktop to hold your credentials.
+#source("~/Desktop/tuber_credential_holder.R")   # Make this file on your desktop to hold your credentials.
 # Then we don't have to worry during pipeline development about an accidentail credential push to GitHub!
 
 app_id <- API_ID
