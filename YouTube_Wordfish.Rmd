@@ -84,15 +84,13 @@ MinComments        <- atleast_M_comments[2] # if so, what value?
 
 
 # 1: SCRAPING DATA - 'code' begins here
-### Get list of videos matching your search terms
-and organize that video list
+### Get list of videos matching your search terms and organize that video list
 ```{r get_video_list}
 SearchResults <- map(SearchTerms, yt_search)
 SearchResultsDF <- do.call(rbind, lapply(SearchResults, data.frame))
 SearchResultsDF[] <- lapply(SearchResultsDF, as.character)
 SearchResultsDF$publishedAt <- SearchResultsDF$publishedAt %>% as_datetime(tz = "UTC", format = NULL)
 SearchResultsDF <- select(SearchResultsDF, video_id, publishedAt, title, channelTitle) %>% arrange(desc(publishedAt))
-
 SearchResultsDF <- SearchResultsDF %>% filter(publishedAt > AfterSearchDate & publishedAt < BeforeSearchDate)
 video_list <-as.vector(SearchResultsDF$video_id) #final list of video IDs
 
@@ -137,19 +135,13 @@ AllCommentsMetadata <- rename(AllCommentsMetadata, c(commentPublishedAt = publis
 # 2: SAVE and READ DATA
 ### Recommended -- Save Your Data
 ```{r output_comments, eval=FALSE, echo=FALSE}
-# Save your data
 write.csv(AllCommentsMetadata, paste("Data/AllComments__", subject_s, today("EST"),".csv", sep=""))
 ```
 
 ### And, read data back in here (only if you need to!)
 ```{r read_in_data, warnings=FALSE}
-#yourdata <- read.csv(paste("Data/AllComments_", subject_s, "_", today("EST"), ".csv", sep="")) # Import data you saved today!
-
-#yourdata <- read.csv("Data/AllComments_Last Week Tonight_2020-06-12.csv") # small LWT single video dataset
-#yourdata <- read.csv("Data/AllComments_floyd.csv")            # - medium BLM dataset
-#yourdata <- read.csv("Data/AllCommentsMetadata 5 29 20.csv")  # - big COVID / stay at home dataset
+#yourdata <- read.csv(paste("Data/AllComments_", subject_s, "_", today("EST"), ".csv", sep="")) 
 #View(yourdata)  #@ if not using data scraped with this tool, you may need to do reformatting (changing col names, etc)
-
 #nrow(yourdata)
 #AllCommentsMetadata <- yourdata
 ```
@@ -157,15 +149,13 @@ write.csv(AllCommentsMetadata, paste("Data/AllComments__", subject_s, today("EST
 # 3: DATA CLEANING
 ```{r select_comments_basedOn_parameters}
 totalScraped <- AllCommentsMetadata %>% group_by(videoTitle) %>% tally() %>% arrange(desc(n))
-
 nrow(AllCommentsMetadata)
 
-#Two options:
-#1. remove videos with less than M comments and view final count
+#remove videos with less than M comments and view final count
 if(KeepMinComments == TRUE){
 tooFew <- filter(totalScraped, n < MinComments)
 AllCommentsMetadata <- AllCommentsMetadata %>% anti_join(tooFew)
-AllCommentsMetadata %>% group_by(videoTitle) %>% tally() %>% arrange(desc(n))  # how many comments, from which video, remain?
+AllCommentsMetadata %>% group_by(videoTitle) %>% tally() %>% arrange(desc(n)) 
 }
 nrow(AllCommentsMetadata)
 ```
@@ -188,7 +178,7 @@ for (com in 1:nrow(AllCommentsMetadata)) {
     list.head <- paste(AllCommentsMetadata$videoTitle[com], "%_%", com,"%_%", AllCommentsMetadata$commentId[com], "%_%", AllCommentsMetadata$videoChannelTitle[com], sep="")
     comment_tokens_l[[list.head]] <- sto_text
   }}
-beep("coin")
+
 comment_ids <- names(comment_tokens_l)
 length(comment_tokens_l)
 ```
@@ -199,23 +189,20 @@ print(paste("keeping",length(comment_tokens_l), "out of", nrow(AllCommentsMetada
 
 ### Making the Corpus
 ```{r data_reshape_for_WF, echo=FALSE, warning=FALSE, results='hide'}
-####### Turn the list of comment files into a corpus data object
+#Turn the list of comment files into a corpus data object
 comment_corpus <- Corpus(VectorSource(comment_tokens_l))   #@ this function needs a list of tokenized char vectors
 comment_corpus <- tm_map(comment_corpus, removeNumbers)
 comment_corpus <- tm_map(comment_corpus, removePunctuation)
 
-for(com in 1:length(comment_corpus)){   
-          # remove the leading "c"s added when the corpus command concatonates tokens (maybe we can avoid this?)
+for(com in 1:length(comment_corpus)){  # remove the leading "c"s added when the corpus command concatonates tokens 
   if(substr(comment_corpus[[com]]$content,1,1)=="c"){
     comment_corpus[[com]]$content<- substr(comment_corpus[[com]]$content, 2, nchar(comment_corpus[[com]]$content))}}
 
-
-
+#Is this missing lines to remove punctuation?
 my_stop <- c(stopwords("english"),
              "c","x", "s", "t", "m", "amp", "youtube", "www", "com", "quot", "br", "http", "https", "")
 
 comment_corpus <- tm_map(comment_corpus, removeWords, my_stop)
-beep("coin")
 
 #The DocumentTermMatrix
 dtm = DocumentTermMatrix(comment_corpus)
@@ -275,7 +262,7 @@ print(paste("Modeling",length(dtma$dimnames$Terms),"words from", length(dtma$dim
 possibly_fish <- possibly(wordfish, otherwise=NULL)
 wfa1 <- possibly_fish(as.wfm(dtma), dir=c(1, 2), control = list(tol = 3.0e-5), verbose = T)
 
-wfa1$docs <- comment_ids #@ This is the actual names (ids) of all of the good comments!
+wfa1$docs <- comment_ids
 str(wfa1)
 ```
 
@@ -309,10 +296,8 @@ hist(psi, breaks=50)    # fixed effect for term (aka ~type~) frequency
 ### Make Composite Data Objects
 For simpler indexing, and also objects that can hold more metadata than the WF model initially captures
 ```{r make_WF_data_objects, echo=FALSE, results='hide'}
-
 comment_identifiers<-data.frame(NA, NA, NA, NA, NA, NA)
 colnames(comment_identifiers) <- c("short_title","short_channel","video_title", "comment_number", "comment_id", "video_channel")
-
 
 for (com in 1:length(wfdocs_v)){
 split <- unlist(strsplit(wfdocs_v[com], "%_%"))
@@ -329,7 +314,6 @@ for(t_word in 2:length(title)){
   s_title <- s_title[1:5]}
 s_title <- paste(s_title, collapse=" ")
 comment_identifiers$short_title[com] <- s_title  
-
 }
 
 ### CREATE DOC DATA DATAFRAME
@@ -344,15 +328,14 @@ wf_worddata.df <- data.frame(wfwords_v, beta, psi)
 ### Comment (doc) polarity, color by video 'short title'
 This is particularly useful / meaningful if you are modeling comments from ~6 or less videos.
 ```{r comments_by_shorttitle, echo=FALSE}
-
-#@ if you want to re-save visualizations with different parameters, you can change subject_s to be more specific of params
+#@ if you want to re-save visualizations with different parameters, you can change subject_s to be more specific
 #original_subject <- subject_s
 #subject_s <- paste(subject_s, "_updated N word min comments")
 #SearchTerms <- c("reopening america", "reopen america", "#reopenamerica", "freeamericanow", "#freeamericanow")
 
 subject.dir <- paste(subject_s, ".vis", "/", sep="")
 dir.create(subject.dir)
-#setwd(paste(data.dir, vis.dir, subject.dir, sep=""))
+#setwd(paste(data.dir, vis.dir, subject.dir, sep="")) (currently throws error with data.dir)
 getwd()
 
 short_title_T_A_plot <- ggplot(data = wf_docdata.df,
@@ -393,7 +376,6 @@ word_P_B_plot <- ggplot(data = wf_worddata.df, mapping = aes(x = beta, y = psi, 
 word_P_B_plot
 
 ggsave(paste("Visualizations/", subject_s, "__Word_P_B_plot", today("EST"), ".pdf",sep=""), device="pdf")
-
 ```
 
 ### Colorizing Key Words (NOT WORKING)
@@ -419,7 +401,6 @@ for(k in 1:length(ktA)){
   #print(sto)
   wf_worddata.df$key[sto] <-topA }   ### NEW FONT SIZE
 #View(wf_worddata.df[which(wf_worddata.df$key==topA),])
-
 
 ktB <- c("wall", "build", "steel", "concrete", "border", "dig", "tunnels", "bars", "invisible", "see")
 for(k in 1:length(ktB)){
@@ -464,7 +445,6 @@ for(k in 1:length(ktG)){
   wf_worddata.df$key[sto] <-topG }    ### NEW FONT SIZE
 #View(wf_worddata.df[which(wf_worddata.df$key==topG),])
 
-
 ktH <- c("job", "jobs", "economic", "work", "worker", "labor", "laborer", "farm", "farms", "agriculture")
 for(k in 1:length(ktH)){
   sto <- NA
@@ -494,6 +474,5 @@ wordLegend_P_B_plot <- ggplot(data = wf_worddata.df, mapping = aes(x = beta, y =
   labs(title = "Vocabulary Polarity in comment network cliques of one thread scraped from YouTube",
        subtitle="'CNN reporter presses Trump: You promised Mexico would pay for wall'\n key terms bolded")
 
-######           __
 #wordLegend_P_B_plot (ERROR)
 ```
