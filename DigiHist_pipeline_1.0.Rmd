@@ -476,7 +476,7 @@ ggsave(paste("Visualizations/", subject_s, "__Word_P_B_plot_", today("EST"), ".p
 
 ```
 
-ggsave(paste(subject_s, "SUBSET_user_T_A_plot.pdf",sep=""), device="pdf")
+
 
 
 ### Final Beeps for All Done!
