@@ -430,11 +430,6 @@ This is particularly useful / meaningful if you are modeling comments from ~6 or
 #subject_s <- paste(subject_s, "_updated N word min comments")
 #SearchTerms <- c("reopening america", "reopen america", "#reopenamerica", "freeamericanow", "#freeamericanow")
 
-subject.dir <- paste(subject_s, ".vis", "/", sep="")
-dir.create(subject.dir)
-setwd(paste(data.dir, vis.dir, subject.dir, sep=""))
-getwd()
-
 short_title_T_A_plot <- ggplot(data = wf_docdata.df,
                                    mapping = aes(x =theta, y = alpha, label = comment_number, color=short_title))+
   geom_text(size = .8) +
