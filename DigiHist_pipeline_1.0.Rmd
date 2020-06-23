@@ -257,8 +257,6 @@ for(com in 1:length(comment_corpus)){
   if(substr(comment_corpus[[com]]$content,1,1)=="c"){
     comment_corpus[[com]]$content<- substr(comment_corpus[[com]]$content, 2, nchar(comment_corpus[[com]]$content))}}
 
-
-
 my_stop <- c(stopwords("english"),
              "c","x", "s", "t", "m", "amp", "youtube", "www", "com", "quot", "br", "http", "https", "")
 

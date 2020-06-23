@@ -103,9 +103,9 @@ This chunk gets all available video comments from API, and converts to a datafra
 get_avlbl_comments <- possibly(get_all_comments, otherwise = NULL)
 AllComments <- map(video_list, get_avlbl_comments)
 AllCommentsDF <- do.call(smartbind, lapply(AllComments, data.frame))  # this works but returns a BUNCH of warnings
-#View(AllComments[[3]])
 nrow(AllCommentsDF)
 AllCommentsVideos <- unique(AllCommentsDF$videoId)  #stores which video comments were scraped
+#View(AllComments[[3]])
 ```
 
 
@@ -204,7 +204,6 @@ for(com in 1:length(comment_corpus)){  # remove the leading "c"s added when the 
   if(substr(comment_corpus[[com]]$content,1,1)=="c"){
     comment_corpus[[com]]$content<- substr(comment_corpus[[com]]$content, 2, nchar(comment_corpus[[com]]$content))}}
 
-#Is this missing lines to remove punctuation?
 my_stop <- c(stopwords("english"),
              "c","x", "s", "t", "m", "amp", "youtube", "www", "com", "quot", "br", "http", "https", "")
 
