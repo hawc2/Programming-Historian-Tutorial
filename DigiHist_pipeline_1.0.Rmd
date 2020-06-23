@@ -131,7 +131,7 @@ This chunk gets all available video comments from API, and converts to a datafra
 get_avlbl_comments <- possibly(get_all_comments, otherwise = NULL)
 AllComments <- map(video_list, get_avlbl_comments)
 AllCommentsDF <- do.call(smartbind, lapply(AllComments, data.frame))  # this works but returns a BUNCH of warnings
-View(AllComments[[3]])
+#View(AllComments[[3]])
 #View(AllCommentsDF)
 
 #nrow(AllCommentsDF)
@@ -170,7 +170,7 @@ AllCommentsMetadata <- rename(AllCommentsMetadata, c(commentPublishedAt = publis
 ### Recommended -- Save Your Data
 ```{r output_comments, eval=FALSE, echo=FALSE}
 # Save your data
-write.csv(AllCommentsMetadata, paste("Data/AllComments__", subject_s, today("EST"),".csv", sep=""))
+write.csv(AllCommentsMetadata, paste("Data/AllComments__", subject_s,"_", today("EST"),".csv", sep=""))
 ```
 
 ### And, read data back in here (only if you need to!)
@@ -445,7 +445,7 @@ short_title_T_A_plot <- ggplot(data = wf_docdata.df,
                       subtitle= paste("identified using the tags:", paste(SearchTerms, collapse=" ")))
 short_title_T_A_plot
 
-ggsave(paste("Visualizations/",subject_s, "__shorttitle_T_A_plot", today("EST"),".pdf",sep=""), device="pdf")
+ggsave(paste("Visualizations/",subject_s, "__shorttitle_T_A_plot_", today("EST"),".pdf",sep=""), device="pdf")
 ```
 
 ### Comment (doc) polarity, color by video
@@ -458,7 +458,7 @@ channel_T_A_plot <- ggplot(data = wf_docdata.df, mapping = aes(x =theta, y = alp
                       subtitle= paste("identified using the tags:", paste(SearchTerms, collapse=" ")))
 channel_T_A_plot
 
-ggsave(paste("Visualizations/",subject_s, "__channel_T_A_plot", today("EST"),".pdf",sep=""), device="pdf")
+ggsave(paste("Visualizations/",subject_s, "__channel_T_A_plot_", today("EST"),".pdf",sep=""), device="pdf")
 ```
 
 
@@ -472,7 +472,7 @@ word_P_B_plot <- ggplot(data = wf_worddata.df, mapping = aes(x = beta, y = psi, 
                    subtitle= paste("identified using the tags:", paste(SearchTerms, collapse=" ")))
 word_P_B_plot
 
-ggsave(paste("Visualizations/", subject_s, "__Word_P_B_plot", today("EST"), ".pdf",sep=""), device="pdf")
+ggsave(paste("Visualizations/", subject_s, "__Word_P_B_plot_", today("EST"), ".pdf",sep=""), device="pdf")
 
 ```
 
